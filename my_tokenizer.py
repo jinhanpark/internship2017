@@ -7,7 +7,7 @@ def tokenizer(expr):
     func_pattern = ["sin\(", 'cos\(', 'tan\(', 'arc', 'pow\(', 'log\(']
     const_pattern = ["e", "pi"]
     op_pattern = ['\+', '\*', '\-', '\/']
-    num_pattern= ["\(|\)|0\.[0-9]*|\.[0-9]*|0|[1-9][0-9]*\.?[0-9]*"]
+    num_pattern= ["\(|\)|0\.[0-9]*|\.[0-9]+|0|[1-9][0-9]*\.?[0-9]*"]
     
     patterns.extend(func_pattern)
     patterns.extend(const_pattern)
@@ -18,4 +18,4 @@ def tokenizer(expr):
     pattern = '('+ combined + ')'
     expr = expr.replace(' ', '')
     tokens = re.split(pattern, expr)
-    return tokens
+    return filter(None, tokens)
