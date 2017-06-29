@@ -98,5 +98,8 @@ class Tokens:
         else:
             raise TypeError("Unexpected '%s' token : %s"% (token_type, token))
 
+    def empty(self):
+        return len(self.values) == 0
+
     def __str__(self):
         return str(self.values)
