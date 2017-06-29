@@ -86,7 +86,8 @@ def is_var(token):
     return token in lst
     
 class Tokens:
-    def __init__(self, token_list):
+    def __init__(self, s):
+        token_list = tokenizer(s)
         self.values = token_list
         self.type_list = token_type_list(token_list)
 
@@ -98,8 +99,8 @@ class Tokens:
         else:
             raise TypeError("Unexpected '%s' token : %s"% (token_type, token))
 
-    def empty(self):
-        return len(self.values) == 0
+    def have_elt(self):
+        return len(self.values) > 0
 
     def __str__(self):
         return str(self.values)
