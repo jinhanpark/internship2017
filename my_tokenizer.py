@@ -3,7 +3,7 @@ import re
 func_pattern = ["sin\(", 'cos\(', 'tan\(', 'arcsin\(', 'arccos\(', 'arctan\(', 'pow\(', 'log\(']
 const_pattern = ["e", "pi"]
 op_pattern = ['\+', '\*', '\-', '\/']
-paren_pattern = ['\(|\)']
+etc_pattern = ['\(|\)|\,']
 num_pattern= ["0\.[0-9]*|\.[0-9]+|0|[1-9][0-9]*\.?[0-9]*"]
 
 def tokenizer(expr):
@@ -12,13 +12,13 @@ def tokenizer(expr):
     global func_pattern
     global const_pattern
     global op_pattern
-    global paren_pattern
+    global etc_pattern
     global num_pattern
     
     patterns.extend(func_pattern)
     patterns.extend(const_pattern)
     patterns.extend(op_pattern)
-    patterns.extend(paren_pattern)
+    patterns.extend(etc_pattern)
     patterns.extend(num_pattern)
     
     combined = '|'.join(patterns)
@@ -43,6 +43,8 @@ def token_type_list(token_list):
             this = 'oparen'
         elif is_cparen(token):
             this = 'cparen'
+        elif is_comma(token):
+            this = 'comma'
         elif is_num(token):
             this = 'num'
         elif is_var(token):
@@ -75,6 +77,9 @@ def is_oparen(token):
 def is_cparen(token):
     return token == ')'
 
+def is_comma(token):
+    return token == ','
+
 def is_num(token):
     global num_pattern
     pattern = '^' + num_pattern[0] + '$'
@@ -101,6 +106,9 @@ class Tokens:
 
     def have_elt(self):
         return len(self.values) > 0
+
+    def this(self):
+        return self.values[0]
 
     def __str__(self):
         return str(self.values)

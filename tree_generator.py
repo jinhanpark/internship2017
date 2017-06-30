@@ -7,7 +7,7 @@ def get_expr(tokens):
     return Expr(term, extail)
 
 def get_extail(tokens):
-    if tokens.have_elt():
+    if tokens.have_elt() and is_add_op(tokens.this()):
         op = tokens.get('add_op')
         expr = get_expr(tokens)
         return ExTail(op, expr)
@@ -20,7 +20,7 @@ def get_term(tokens):
     return Term(factor, termtail)
 
 def get_termtail(tokens):
-    if tokens.have_elt():
+    if tokens.have_elt() and is_mul_op(tokens.this()):
         op = tokens.get('mul_op')
         term = get_term(tokens)
         return TermTail(op, term)
@@ -28,38 +28,71 @@ def get_termtail(tokens):
         return Empty()
 
 def get_factor(tokens):
-    if is_oparen(tokens.values[0]):
-        factor = get_paren(tokens)
+    this = tokens.this()
+    coeff = 1
+    while this == '-':
+        coeff *= -1
+        tokens.get('add_op')
+        this = tokens.this()
+    if is_oparen(this):
+        factor = get_paren(tokens, coeff)
+    elif is_func_name(this):
+        factor = get_func(tokens, coeff)
     else:
-        factor = get_atom(tokens)
+        factor = get_atom(tokens, coeff)
     return factor
 
-def get_paren(tokens):
+def get_paren(tokens, coeff = 1):
     tokens.get('oparen')
     expr = get_expr(tokens)
     end = tokens.get('cparen')
     if end == ')':
-        return Paren(expr)
+        return Paren(expr, coeff)
     else:
         raise SyntaxError("No expected ')'")
 
-def get_atom(tokens):
-    today = tokens.values[0]
-    if today == '-':
-        tomorrow = tokens.values[1]
+def get_func(tokens, coeff = 1):
+    name = tokens.get('func')
+    expr = get_expr(tokens)
+    if name == 'pow(':
+        base = expr
+        tokens.get('comma')
+        ind = get_expr(tokens)
+        tokens.get('cparen')
+        return Pow(base, ind, coeff)
+    tokens.get('cparen')
+    if name == 'sin(':
+        return Sin(expr, coeff)
+    elif name == 'cos(':
+        return Cos(expr, coeff)
+    elif name == 'tan(':
+        return Tan(expr, coeff)
+    elif name == 'arcsin(':
+        return ArcSin(expr, coeff)
+    elif name == 'arccos(':
+        return ArcCos(expr, coeff)
+    elif name == 'arctan(':
+        return ArcTan(expr, coeff)
+    elif name == 'log(':
+        return Log(expr, coeff)
     else:
-        tomorrow = today
-        today = ''
-    this = today + tomorrow
+        print "It shoudn't happen"
+
+def get_atom(tokens, coeff=1):
+    this = tokens.this()
     if is_num(this):
-        return Num(this)
+        this = tokens.get('num')
+        return Num(this, coeff)
     elif is_const(this):
-        return Const(tokens)
+        this = tokens.get('const')
+        return Const(this, coeff)
     elif is_variable(this):
-        return Var(tokens)
-    elif is_func_name(this):
-        return Func(tokens)
+        this = tokens.get('var')
+        return Var(this, coeff)
     else:
         raise SyntaxError("Unexpected token %s" % this)
+
+        
+    
 
 ## Num, Const, Var, Func inherits from Atom
