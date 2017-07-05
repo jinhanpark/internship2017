@@ -86,13 +86,8 @@ def get_atom(tokens, coeff=1):
     elif is_const(this):
         this = tokens.get('const')
         return Const(this, coeff)
-    elif is_variable(this):
+    elif is_var(this):
         this = tokens.get('var')
         return Var(this, coeff)
     else:
         raise SyntaxError("Unexpected token %s" % this)
-
-        
-    
-
-## Num, Const, Var, Func inherits from Atom

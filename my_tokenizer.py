@@ -104,6 +104,10 @@ class Tokens:
         else:
             raise TypeError("Unexpected '%s' token : %s"% (token_type, token))
 
+    def insert(self, token, token_type):
+        self.values.insert(0, token)
+        self.type_list.insert(0, token_type)
+
     def have_elt(self):
         return len(self.values) > 0
 
