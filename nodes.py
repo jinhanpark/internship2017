@@ -79,8 +79,9 @@ class Term(MetaTerm):
         self.coeff = 1
 
     def simplify(self):
-        self.factor.simplify()
-        self.termtail.simplify()
+        pass
+    #     self.factor.simplify()
+    #     self.termtail.simplify()
 
     # def powerize(self, ind=1):
     #     self.factor = self.factor.powerized(ind)
@@ -153,13 +154,13 @@ class Factor:
     def __init__(self, coeff):
         self.coeff = coeff
 
-    # def simplify(self):
-    #     pass
+    def simplify(self):
+        pass
 
-    # def powerized(self, ind=1):
-    #     base_expr = factor2expr(self)
-    #     ind_expr = number2expr(ind)
-    #     return Pow(base_expr, ind_expr)
+    def powerized(self, ind=1):
+        base_expr = factor2expr(self)
+        ind_expr = number2expr(ind)
+        return Pow(base_expr, ind_expr)
 
 class Pow(Factor):
     def __init__(self, base, ind, coeff=1):
@@ -198,13 +199,11 @@ class Const(Factor):
     def __str__(self):
         return str(self.const)
 
-class Num():
+class Num(Factor):
     def __init__(self, num, coeff = 1):
-        self.coeff = float(num) * coeff
+        Factor.__init__(self, coeff)
+        self.coeff *= float(num)
         self.num = 1
-
-    # def simplify(self):
-    #     pass
 
     # def powerized(self, ind=1):
     #     self.coeff = math.pow(self.coeff, ind)
