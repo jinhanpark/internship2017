@@ -9,8 +9,9 @@ def get_expr(tokens):
 def get_extail(tokens):
     if tokens.have_elt() and is_add_op(tokens.this()):
         op = tokens.get('add_op')
-        expr = get_expr(tokens)
-        return ExTail(op, expr)
+        term = get_term(tokens)
+        extail = get_extail(tokens)
+        return ExTail(op, term, extail)
     else:
         return Empty()
 
@@ -22,8 +23,9 @@ def get_term(tokens):
 def get_termtail(tokens):
     if tokens.have_elt() and is_mul_op(tokens.this()):
         op = tokens.get('mul_op')
-        term = get_term(tokens)
-        return TermTail(op, term)
+        factor = get_factor(tokens)
+        termtail = get_termtail(tokens)
+        return TermTail(op, factor, termtail)
     else:
         return Empty()
 
