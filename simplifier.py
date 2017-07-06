@@ -20,7 +20,7 @@ def right_dist(this_term):
     tail = this_term.termtail
     temp = expr
     while True:
-        temp.term.add_tail(tail)
+        temp.term.add_term_tail(tail)
         if temp.extail.type == 'empty':
             break
         temp = temp.extail.expr

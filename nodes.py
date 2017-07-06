@@ -3,12 +3,9 @@ import copy
 
 class Empty:
     def __init__(self):
-        self.type = 'empty'
-
-    def gather_coefficient(self):
         pass
 
-    def powerize(self):
+    def simplify(self):
         pass
 
     def __str__(self):
@@ -16,112 +13,111 @@ class Empty:
 
 class Expr:
     def __init__(self, term, extail=Empty()):
-        self.type = 'expr'
         self.term = term
         self.extail = extail
-        self.term.coeff = 'not gathered'
-        self.gather_coefficient()
-
-    def gather_coefficient(self):
-        self.term.gather_coefficient()
-        self.extail.gather_coefficient()
-        
-    def powerize(self):
-        self.term.powerize()
-        self.extail.powerize()
+        self.term.coeff = 1.
 
     def simplify(self):
-        self.powerize()
-        self.gather_coefficient()
+        self.term.simplify()
+        self.extail.simplify()
+        self.term.powerize()
+        self.term.get_coeff()
+        self.term.remove_nums()
 
     def eval(self):
         pass
 
     def __str__(self):
         coeff = self.term.coeff
-        if type(coeff) == str:
-            coeff_str = coeff
-        elif coeff != 1.0 or True:
-            coeff_str = '%.2f*'%coeff
-        else:
+        coeff_str = '%.2f*'%coeff
+        if coeff == 1.0:
             coeff_str = ''
+        elif coeff == -1.0:
+            coeff_str = '-'
+        elif isinstance(self.term.factor, Num):
+            coeff_str = '%.2f'%coeff
+            if isinstance(self.term.termtail, Empty):
+                return '%s%s'%(coeff_str, str(self.extail))
+            else:
+                return '%s%s%s'%(coeff_str, str(self.term.termtail), str(self.extail))
+
         return '%s%s%s'%(coeff_str, str(self.term), str(self.extail))
 
     def __neg__(self):
-        if self.extail.type == 'empty':
-            self.term.coeff *= -1
-            return self
-        else:
-            raise SyntaxError("negation on expression which has tail")
+        self.term = -self.term
+        if not isinstance(self.extail, Empty):
+            self.extail.expr = -self.extail.expr
+        return self
+
+
+    def __add__(self, another):
+        return '%s+%s'%(str(self), str(another))
 
 class ExTail:
     def __init__(self, op, expr):
-        self.type = 'extail'
         self.op = op
         self.expr = expr
 
-    def gather_coefficient(self):
-        self.expr.gather_coefficient()
+    def simplify(self):
+        if self.op == '-':
+            self.op = '+'
+            self.expr.term.coeff *= -1
+        self.expr.simplify()
 
-    def powerize(self):
-        self.expr.powerize()
 
     def __str__(self):
         return str(self.op) + str(self.expr)
 
 class Term:
     def __init__(self, factor, termtail=Empty()):        
-        self.type = 'term'
         self.factor = factor
         self.termtail = termtail
-        self.coeff = None
+        self.coeff = 1
 
-    def add_tail(self, tail):
+    def add_term_tail(self, tail):
         temp = self
         while temp.termtail.type != 'empty':
             temp = temp.termtail.term
         temp.termtail = tail
 
-    def gather_coefficient(self):
-        self.factor.gather_coefficient()
-        self.termtail.gather_coefficient()
-
-        self.get_coeff_and_remove_num()
-
     def powerize(self, ind=1):
-        ind = num2expr(ind)
         self.factor = self.factor.powerized(ind)
-        if self.termtail.type == 'empty':
-            pass
-        elif self.termtail.op == '/':
-            self.termtail.op = '*'
-            self.termtail.term.powerize(-1)
-        else:
-            self.termtail.term.powerize()
+        if not isinstance(self.termtail, Empty):
+            if self.termtail.op == '/':
+                self.termtail.op  = '*'
+                ind = -1
+            self.termtail.term.powerize(ind)
 
-    def get_coeff_and_remove_num(self):
-        coeff = self.coeff
-        if coeff != 'not gathered':
-            return None
-        if self.factor.type != 'num':
-            self.coeff = 'ignore'
-            self.termtail = TermTail('*', copy.deepcopy(self))
-            self.factor = Num(1)
-        coeff = self.factor.coeff
-        temp = self
-        while temp.termtail.type != 'empty':
-            next_factor = temp.termtail.term.factor
-            next_termtail = temp.termtail.term.termtail
-            if temp.termtail.op == '*':
-                coeff *= next_factor.coeff
-            elif temp.termtail.op == '/':
-                coeff /= next_factor.coeff
-            next_factor.coeff = 1
-            if next_factor.type == 'num':
-                temp.termtail = next_termtail
+    def get_coeff(self):
+        self.coeff *= self.factor.coeff
+        self.factor.coeff = 1
+        if not isinstance(self.termtail, Empty):
+            self.termtail.term.get_coeff()
+            self.coeff *= self.termtail.term.coeff
+            self.termtail.term.coeff = 1
+
+    def remove_nums(self):
+        self.remove_right_nums()
+        self.remove_left_num()
+
+    def remove_right_nums(self):
+        if not isinstance(self.termtail, Empty):
+            if isinstance(self.termtail.term.factor, Num): # remove tail nums
+                self.termtail.term.remove_right_nums()
+                self.termtail = self.termtail.term.termtail
             else:
-                temp = temp.termtail.term
-        self.coeff = coeff
+                self.termtail.term.remove_right_nums()
+
+    def remove_left_num(self):
+        if isinstance(self.factor, Num) and\
+           not isinstance(self.termtail, Empty): # remove last first num if it has nonempty tail
+            self.factor = self.termtail.term.factor
+            self.termtail = self.termtail.term.termtail
+
+
+    def simplify(self):
+        self.factor.simplify()
+        self.termtail.simplify()
 
     def eval(self):
         pass
@@ -129,44 +125,103 @@ class Term:
     def __str__(self):
         return '%s%s'%(str(self.factor), str(self.termtail))
 
+    def __neg__(self):
+        self.coeff *= -1
+        return self
+
 class TermTail:
     def __init__(self, op, term):
-        self.type = 'termtail'
         self.op = op
         self.term = term
 
-    def gather_coefficient(self):
-        self.term.gather_coefficient()
+    def simplify(self):
+        self.term.simplify()
 
     def __str__(self):
         return str(self.op) + str(self.term)
 
 class Factor:
     def __init__(self, coeff):
-        self.type = 'factor'
         self.coeff = coeff
 
-    def gather_coefficient(self):
+    def simplify(self):
         pass
 
-    def powerized(self, ind):
-        new = factor2expr(self)
-        return Pow(new, ind, self.coeff)
-        
+    def powerized(self, ind=1):
+        base_expr = factor2expr(self)
+        ind_expr = number2expr(ind)
+        return Pow(base_expr, ind_expr)
+
+class Pow(Factor):
+    def __init__(self, base, ind, coeff=1):
+        Factor.__init__(self, coeff)
+        self.base = base
+        self.ind = ind
+
+    def simplify(self):
+        self.base.simplify()
+        self.ind.simplify()
+
+    def powerized(self, ind=1):
+        if ind == -1:
+            self.ind = -self.ind
+        return self
+
+    def eval(self):
+        pass
+
+    def __str__(self):
+        return 'pow(%s, %s)'%(str(self.base), str(self.ind))
+
+class Var(Factor):
+    def __init__(self, var, coeff = 1):
+        Factor.__init__(self, coeff)
+        self.var = var
+
+    def eval(self):
+        pass
+
+    def __str__(self):
+        return str(self.var)
+
+class Const(Factor):
+    def __init__(self, const, coeff = 1):
+        Factor.__init__(self, coeff)
+        self.const = const
+
+    def eval(self):
+        pass
+
+    def __str__(self):
+        return str(self.const)
+
+class Num():
+    def __init__(self, num, coeff = 1):
+        self.coeff = float(num) * coeff
+        self.num = 1
+
+    def simplify(self):
+        pass
+
+    def powerized(self, ind=1):
+        self.coeff = math.pow(self.coeff, ind)
+        return self
+
+    def eval(self):
+        pass
+
+    def __str__(self):
+        # if self.num == 1: #delete *1's
+        #     return '\b'
+        return str(self.coeff)
+
 class SingleFunction(Factor):
     def __init__(self, expr, coeff=1):
         Factor.__init__(self, coeff)
-        self.type = 'func'
         self.expr = expr
-        self.func_name = ''
 
-    def gather_coefficient(self):
-        self.expr.gather_coefficient()
-
-    def powerized(self, ind):
-        self.expr.powerize()
-        new = factor2expr(self)
-        return Pow(new, ind, self.coeff)
+    def simplify(self):
+        self.expr.simplify()
 
     def __str__(self):
         return '%s(%s)'%(self.func_name, str(self.expr))
@@ -174,14 +229,7 @@ class SingleFunction(Factor):
 class Paren(SingleFunction): #regard Paren as identity function
     def __init__(self, expr, coeff=1):
         SingleFunction.__init__(self, expr, coeff)
-        self.type = 'paren'
-
-    def powerized(self, ind):
-        self.expr.powerize()
-        if ind.term.coeff == -1:
-            return Pow(self.expr, ind)
-        else:
-            return self
+        self.func_name = ''
 
     def eval(self):
         pass
@@ -208,14 +256,14 @@ class Tan(SingleFunction):
         self.func_name = 'tan'
 
     def powerized(self, ind):        
-        sin_ind = ind
-        cos_ind = -copy.deepcopy(ind)
+        sin_ind = number2expr(ind)
+        cos_ind = number2expr(-ind)
         self.expr.powerize()
         sin = factor2expr(Sin(self.expr))
         cos = factor2expr(Cos(self.expr))
-        new = multiply_factors2expr(Pow(sin, sin_ind),
-                                 Pow(cos, cos_ind))
-        return Paren(new, self.coeff)
+        expr = multiply_factors2expr(Pow(sin, sin_ind),
+                                     Pow(cos, cos_ind))
+        return Paren(expr, self.coeff)
 
     def eval(self):
         pass
@@ -252,85 +300,13 @@ class Log(SingleFunction):
     def eval(self):
         pass
 
-class Pow(Factor):
-    def __init__(self, base, ind, coeff=1):
-        Factor.__init__(self, coeff)
-        self.type = 'pow'
-        self.base = base
-        self.ind = ind
-        self.func_name = 'pow'
-
-    def gather_coefficient(self):
-        self.base.gather_coefficient()
-        self.ind.gather_coefficient()
-
-    def powerized(self, ind):
-        self.ind.powerize()
-        if self.ind.extail.type != 'empty':
-            self.ind = expr2paren(self.ind)
-        self.base.powerize()
-        self.ind.term.coeff *= ind.term.coeff
-        return self
-
-    def eval(self):
-        pass
-
-    def __str__(self):
-        return 'pow(%s, %s)'%(str(self.base), str(self.ind))
-
-class Var(Factor):
-    def __init__(self, var, coeff = 1):
-        Factor.__init__(self, coeff)
-        self.type = 'var'
-        self.var = var
-
-    def eval(self):
-        pass
-
-    def __str__(self):
-        return str(self.var)
-
-class Const(Factor):
-    def __init__(self, const, coeff = 1):
-        Factor.__init__(self, coeff)
-        self.type = 'const'
-        self.const = const
-
-    def eval(self):
-        pass
-
-    def __str__(self):
-        return str(self.const)
-
-class Num():
-    def __init__(self, num, coeff = 1):
-        self.type = 'num'
-        self.num = float(num)
-        self.coeff = coeff
-
-    def gather_coefficient(self):
-        self.coeff = self.num * self.coeff
-        self.num = 1
-
-    def powerized(self, ind):
-        self.coeff = math.pow(self.coeff, ind.term.coeff)
-        return self
-
-    def eval(self):
-        pass
-
-    def __str__(self):
-        if self.num == 1: #delete *1's
-            return '\b'
-        return str(self.num)
-
-
 def factor2expr(given):
     temp = Expr(Term(given))
     return temp
 
-def num2expr(given):
+def number2expr(given):
     temp = Expr(Term(Num(given)))
+    temp.simplify()
     return temp
 
 def expr2paren(given):
