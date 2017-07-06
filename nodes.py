@@ -1,5 +1,4 @@
 import math
-import copy
 
 class Empty:
     def __init__(self):
@@ -15,7 +14,6 @@ class Expr:
     def __init__(self, term, extail=Empty()):
         self.term = term
         self.extail = extail
-        self.term.coeff = 1.
 
     def simplify(self):
         self.term.simplify()
