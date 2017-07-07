@@ -25,7 +25,7 @@ def tokenizer(expr):
     pattern = '('+ combined + ')'
     expr = expr.replace(' ', '')
     tokens = re.split(pattern, expr)
-    return filter(None, tokens)
+    return [x for x in tokens if len(x)>0]
 
 def token_type_list(token_list):
     type_list = []
