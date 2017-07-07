@@ -76,7 +76,7 @@ def get_func(tokens, coeff = 1):
     elif name == 'log(':
         return Log(expr, coeff)
     else:
-        print "It shoudn't happen"
+        print("It shoudn't happen")
 
 def get_atom(tokens, coeff=1):
     this = tokens.this()
