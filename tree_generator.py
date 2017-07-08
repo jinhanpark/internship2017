@@ -1,6 +1,14 @@
 from nodes import *
 from my_tokenizer import *
 
+def get_meta(s):
+    tokens = Tokens(s)
+    return MetaExpr(get_expr(tokens))
+
+def get_simple_expr(s):
+    tokens = Tokens(s)
+    return MetaExpr(get_expr(tokens)).expr
+
 def get_expr(tokens):
     term = get_term(tokens)
     extail = get_extail(tokens)
@@ -41,7 +49,7 @@ def get_factor(tokens):
     elif is_func_name(this):
         factor = get_func(tokens, coeff)
     else:
-        factor = get_atom(tokens, coeff)
+        factor = get_literal(tokens, coeff)
     return factor
 
 def get_paren(tokens, coeff = 1):
@@ -59,9 +67,9 @@ def get_func(tokens, coeff = 1):
     if name == 'pow(':
         base = expr
         tokens.get('comma')
-        ind = get_expr(tokens)
+        exp = get_expr(tokens)
         tokens.get('cparen')
-        return Pow(base, ind, coeff)
+        return Pow(base, exp, coeff)
     tokens.get('cparen')
     if name == 'sin(':
         return Sin(expr, coeff)
@@ -80,7 +88,7 @@ def get_func(tokens, coeff = 1):
     else:
         print("It shoudn't happen")
 
-def get_atom(tokens, coeff=1):
+def get_literal(tokens, coeff=1):
     this = tokens.this()
     if is_num(this):
         this = tokens.get('num')
