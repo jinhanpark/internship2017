@@ -13,6 +13,7 @@ class MetaExpr:
             self.expr.simplify()
             before = after
             after = str(self.expr)
+        return self
 
     def __repr__(self):
         return str(self)
@@ -125,10 +126,13 @@ class Expr(ExprCommon):
         return new
 
     def __mul__(self, another):
-        assert isinstance(another, Expr)
+        assert isinstance(another, Term) or isinstance(another, Expr)
         new = copy.deepcopy(self)
+        if isinstance(another, Term):
+            pass
+        elif isinstance(another, Expr):
+            pass
         return new
-
 
 class ExTail(ExprCommon):
     def __init__(self, op, term, extail=Empty()):
@@ -159,17 +163,7 @@ class TermCommon:
         self.get_coeff()
         self.remove_nums()
         self.order_and_gather_factors()
-        
 
-    def order_and_gather_factors(self):
-        if not isinstance(self.termtail, Empty):
-            self.termtail.order_and_gather_factors()
-            if self.factor < self.termtail.factor:
-                self.factor, self.termtail.factor = self.termtail.factor, self.factor
-            elif self.factor == self.termtail.factor:
-                self.factor.exp += self.termtail.factor.exp
-                self.termtail = self.termtail.termtail
-        
     def get_coeff(self):
         if not isinstance(self.termtail, Empty):
             self.coeff *= self.termtail.coeff
@@ -185,6 +179,15 @@ class TermCommon:
                 self.factor = self.termtail.factor
                 self.termtail = self.termtail.termtail
 
+    def order_and_gather_factors(self):
+        if not isinstance(self.termtail, Empty):
+            self.termtail.order_and_gather_factors()
+            if self.factor < self.termtail.factor:
+                self.factor, self.termtail.factor = self.termtail.factor, self.factor
+            elif self.factor == self.termtail.factor:
+                self.factor.exp += self.termtail.factor.exp
+                self.termtail = self.termtail.termtail
+        
     def add_termtail(self, given_termtail):
         assert isinstance(given_termtail, TermTail)
         if isinstance(self.termtail, Empty):
@@ -197,11 +200,23 @@ class Term(TermCommon):
     def __init__(self, factor, termtail=Empty()):        
         TermCommon.__init__(self, factor, termtail)
 
+    def tailized(self):
+        return TermTail('*', self.factor, self.termtail)
+
     def __repr__(self):
         return str(self)
 
     def __str__(self):
         return '%s%s'%(str(self.factor), str(self.termtail))
+
+    def __mul__(self, another):
+        assert isinstance(another, Term) or isinstance(another, Expr)
+        new = copy.deepcopy(self)
+        if isinstance(another, Term):
+            new.add_termtail(another.tailized())
+        elif isinstance(another, Expr):
+            pass
+        return new
 
     def __neg__(self):
         new = copy.deepcopy(self)
