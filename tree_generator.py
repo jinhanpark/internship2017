@@ -1,7 +1,7 @@
 from nodes import *
 from my_tokenizer import *
 
-def get_meta(s):
+def get_meta_expr(s):
     tokens = Tokens(s)
     return MetaExpr(get_expr(tokens))
 

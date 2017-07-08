@@ -43,14 +43,8 @@ for s in lst:
     #print expr
 
 
-ex1 = get_simple_expr('2*3*x')
-ex2 = get_simple_expr('3*sin(y)')
+ex1 = get_meta_expr('pow(x, 2)*pow(x, 3)*x')
+ex2 = get_meta_expr('pow(x, 3)')
 ex3 = ex1+ex2
 
-print('%s\n%s\n%s\n'%(ex1, ex2, ex3))
-
-t1 = ex1.term
-t2 = ex2.term
-
-print(t1<t2)
-print(t1>=t2)
+print('%s plus\n%s is\n%s\n'%(ex1, ex2, ex3))
