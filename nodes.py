@@ -45,11 +45,11 @@ class ExprCommon:
 
         self.extail.simplify() # recursive part
 
-        self.get_smallest_term()
+        self.order_terms()
 
-    def get_smallest_term(self):
+    def order_terms(self):
         if not isinstance(self.extail, Empty):
-            self.extail.get_smallest_term()
+            self.extail.order_terms()
             if self.extail.term < self.term:
                 self.term, self.extail.term = self.extail.term, self.term
             elif self.extail.term == self.term:
