@@ -81,12 +81,6 @@ def get_func(tokens, coeff):
         return Cos(expr, coeff)
     elif name == 'tan(':
         return Tan(expr, coeff)
-    elif name == 'arcsin(':
-        return ArcSin(expr, coeff)
-    elif name == 'arccos(':
-        return ArcCos(expr, coeff)
-    elif name == 'arctan(':
-        return ArcTan(expr, coeff)
     elif name == 'log(':
         return Log(expr, coeff)
     else:

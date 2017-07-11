@@ -5,11 +5,13 @@ def is_num(x):
     return type(x) == int or type(x) == float
 
 def factor2expr(given):
-    new = Expr(Term(given))
+    copied = copy.deepcopy(given)
+    new = Expr(Term(copied))
     return new
 
 def num2expr(given):
-    new = Expr(Term(Num(given)))
+    copied = copy.deepcopy(given)
+    new = Expr(Term(Num(copied)))
     return new
 
 # def expr2paren(given):
@@ -74,7 +76,15 @@ class Pow(Factor):
     def penetrate(self):
         self.base.simplify()
 
-    def simplified(self): # must be much more complicate
+    def simplified(self):
+        # if isinstance(self.base.extail, Empty):
+        #     if isinstance(self.base.term.termtail, Empty):
+        #         pass
+        #     else:
+                
+        # else:
+        #     pass
+            
         if self.base.is_single_factor():
             self.base.penetrate()
         else:
@@ -167,34 +177,16 @@ class Tan(SinVarFunc):
         SinVarFunc.__init__(self, expr, coeff)
         self.func_name = 'tan'
 
-    # def powerized(self, ind):        
-    #     sin_ind = number2expr(ind)
-    #     cos_ind = number2expr(-ind)
-    #     self.expr.powerize()
-    #     sin = factor2expr(Sin(self.expr))
-    #     cos = factor2expr(Cos(self.expr))
-    #     expr = multiply_factors2expr(Pow(sin, sin_ind),
-    #                                  Pow(cos, cos_ind))
-    #     return Paren(expr, self.coeff)
-
-
-class ArcSin(SinVarFunc):
-    def __init__(self, expr, coeff=1.):
-        SinVarFunc.__init__(self, expr, coeff)
-        self.func_name = 'arcsin'
-
-
-class ArcCos(SinVarFunc):
-    def __init__(self, expr, coeff=1.):
-        SinVarFunc.__init__(self, expr, coeff)
-        self.func_name = 'arccos'
-
-
-class ArcTan(SinVarFunc):
-    def __init__(self, expr, coeff=1.):
-        SinVarFunc.__init__(self, expr, coeff)
-        self.func_name = 'arctan'
-
+    def simplified(self):
+        sin_ind = num2expr(self.exp)
+        print(sin_ind, self.exp)
+        cos_ind = num2expr(-self.exp)
+        print(cos_ind, self.exp)
+        self.base.simplify()
+        sin = Pow(factor2expr(Sin(self.base)), sin_ind)
+        cos = Pow(factor2expr(Cos(self.base)), cos_ind)
+        new = Expr(Term(sin, TermTail('*', cos)))
+        return Paren(new)
 
 class Log(SinVarFunc):
     def __init__(self, expr, coeff=1.):
