@@ -30,13 +30,13 @@ main()
     
 
 lst = ['sin(x)', '1/sin(x)', 'pow(sin(pow(x, 1)), -1)', 'pow(sin(x), -1)', '1/pow(sin(x), 1)']
-#lst = ['1/x', '1/pow(x, 1)', 'pow(x, -1)']
-lst = ['(x+y)*(x+y)']
+lst = ['1/x', '1/pow(x, 1)', 'pow(x, -1)']
+#lst = ['(x+y)*(x+y)']
 #lst = ['2*3*x*5*8*7']
 #lst = ['x*y', 'x*pow(x, 3)', 'x*y*x', 'x*y*pow(x, 2)']
 #lst = ['x*cos(x) +30 + y - 1', 'y+ cos(x)*x +29', 'pow(y, 1)+pow(x, 1)*pow(cos(pow(x, 1)), 1)+29.00']
 #lst = ['0+2+0+3+0']
-lst = ['2*(3+x)']
+lst = ['pow((x+y), 1)']
 
 for s in lst:
     expr = get_meta_expr(s)

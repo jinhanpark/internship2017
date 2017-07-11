@@ -529,12 +529,16 @@ class MetaExpr:
         return MetaExpr(-self.expr)
 
     def __add__(self, another):
-        assert isinstance(another, MetaExpr)
-        return MetaExpr(self.expr + another.expr)
+        if isinstance(another, MetaExpr):
+            return MetaExpr(self.expr + another.expr)
+        else:
+            return MetaExpr(self.expr + another)
 
     def __mul__(self, another):
-        assert isinstance(another, MetaExpr)
-        return MetaExpr(self.expr * another.expr)
+        if isinstance(another, MetaExpr):
+            return MetaExpr(self.expr * another.expr)
+        else:
+            return MetaExpr(self.expr * another)
 
     def __repr__(self):
         return str(self)
