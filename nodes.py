@@ -54,7 +54,9 @@ class Factor:
         return str(self)
 
     def __str__(self):
-        return 'pow(%s, %s)'%(str(self.base), str(self.exp))
+        coeff_str = ''
+#        coeff_str = 'fact%.2f*'%self.coeff
+        return '%spow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
 
     def __lt__(self, another):
         assert isinstance(another, Factor)
@@ -78,42 +80,41 @@ class Pow(Factor):
 
     def simplified(self):
         self.exp.simplify()
-        # if isinstance(self.base.extail, Empty):
-        #     if isinstance(self.base.term.termtail, Empty): # when single factor
-        #         self.base.penetrate()
-        #         inner_factor = self.base.term.factor.simplified()
-        #         if isinstance(inner_factor, Paren):
-        #             return Pow(inner_factor.base, self.exp)
-        #         elif isinstance(inner_factor, Pow):
-        #             return Pow(inner_factor.base, self.exp*inner_factor.exp)
-        #         elif isinstance(inner_factor, Num) and\
-        #              self.exp.is_single_factor(Num):
-        #             return Num(math.pow(inner_factor.coeff, self.exp.term.coeff))
-        #         else:
-        #             return self
-        #     else: # when single term
-        #         self.base.penetrate()
-        #         self.base.term.power_by(self.exp)
-        #         return Paren(self.base)
-        # else: # when have extail
-        #     if self.exp.is_single_factor(Num) and\
-        #        self.exp.term.factor.coeff == int(self.exp.term.factor.coeff) and\
-        #        self.exp.term.factor.coeff > 0:
-        #         new = num2expr(1)
-        #         while self.exp.term.factor.coeff > 0:
-        #             new *= self.base
-        #             new.simplify()
-        #             self.exp.term.factor.coeff -= 1
-        #         return Paren(new)
-        #     else:
-        #         self.base.simplify()
-        #         return self
+        if isinstance(self.base.extail, Empty):
+            if isinstance(self.base.term.termtail, Empty): # when single factor
+                self.base.penetrate()
+                inner_factor = self.base.term.factor
+                if isinstance(inner_factor, Paren):
+                    return Pow(inner_factor.base, self.exp)
+                elif isinstance(inner_factor, Pow):
+                    return Pow(inner_factor.base, self.exp*inner_factor.exp)
+                elif isinstance(inner_factor, Num) and\
+                     self.exp.is_single_factor(Num):
+                    return Num(math.pow(self.base.term.coeff, self.exp.term.coeff))
+                else:
+                    return self
+            else: # when single term
+                self.base.term.power_by(self.exp)
+                return Paren(self.base)
+        else: # when have extail
+            if self.exp.is_single_factor(Num) and\
+               self.exp.term.coeff == int(self.exp.term.coeff) and\
+               self.exp.term.coeff > 0:
+                new = num2expr(1)
+                while self.exp.term.coeff > 0:
+                    new *= self.base
+                    new.simplify()
+                    self.exp.term.coeff -= 1
+                return Paren(new)
+            else:
+                self.base.simplify()
+                return self
 
-        if self.base.is_single_factor():
-            self.base.penetrate()
-        else:
-            self.base.simplify()
-        return self
+        # if self.base.is_single_factor():
+        #     self.base.penetrate()
+        # else:
+        #     self.base.simplify()
+        # return self
 
 class Literal(Factor):
     def __init__(self, value, coeff=1.):
@@ -129,7 +130,9 @@ class Literal(Factor):
         return str(self)
 
     def __str__(self):
-        return str(self.base)
+        coeff_str = ''
+#        coeff_str = 'literal%.2f*'%self.coeff
+        return '%s%s'%(coeff_str, str(self.base))
 
 class Var(Literal):
     def __init__(self, var, coeff=1.):
@@ -171,7 +174,9 @@ class SinVarFunc(Factor):
         return str(self)
 
     def __str__(self):
-        return '%s(%s)'%(self.func_name, str(self.base))
+        coeff_str = ''
+#        coeff_str = 'fact%.2f*'%self.coeff
+        return '%s%s(%s)'%(coeff_str, self.func_name, str(self.base))
 
 class Paren(SinVarFunc): #regard Paren as identity function
     def __init__(self, expr, coeff=1.):
@@ -284,8 +289,10 @@ class TermCommon:
     def power_by(self, exp):
         if isinstance(self, Term) and\
            self.coeff != 1:
-            self.factor = Num(self.coeff)
+            new_factor = Num(self.coeff)
+            self.coeff = 1.
             self.termtail = self.tailized()
+            self.factor = new_factor
         self.factor = Pow(factor2expr(self.factor), exp, self.factor.coeff)
         if isinstance(self.termtail, TermTail):
             self.termtail.power_by(exp)
@@ -329,7 +336,7 @@ class Term(TermCommon):
         # elif coeff == -1:
         #     coeff_str = '-'
         # else:
-        #     coeff_str = '%.2f*'
+        #     coeff_str = 'term%.2f*'%coeff #end for debug
         return '%s%s%s%s'%(op_str, coeff_str, factor_str, termtail_str)
 
     def __mul__(self, another):
