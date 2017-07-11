@@ -1,6 +1,18 @@
 from nodes import *
 from my_tokenizer import *
 
+def get_meta_expr(s):
+    tokens = Tokens(s)
+    return MetaExpr(get_expr(tokens))
+
+def get_simple_expr(s):
+    tokens = Tokens(s)
+    return MetaExpr(get_expr(tokens)).expr
+
+def get_expr_from_string(s):
+    tokens = Tokens(s)
+    return get_expr(tokens)
+
 def get_expr(tokens):
     term = get_term(tokens)
     extail = get_extail(tokens)
@@ -9,8 +21,9 @@ def get_expr(tokens):
 def get_extail(tokens):
     if tokens.have_elt() and is_add_op(tokens.this()):
         op = tokens.get('add_op')
-        expr = get_expr(tokens)
-        return ExTail(op, expr)
+        term = get_term(tokens)
+        extail = get_extail(tokens)
+        return ExTail(op, term, extail)
     else:
         return Empty()
 
@@ -22,14 +35,15 @@ def get_term(tokens):
 def get_termtail(tokens):
     if tokens.have_elt() and is_mul_op(tokens.this()):
         op = tokens.get('mul_op')
-        term = get_term(tokens)
-        return TermTail(op, term)
+        factor = get_factor(tokens)
+        termtail = get_termtail(tokens)
+        return TermTail(op, factor, termtail)
     else:
         return Empty()
 
 def get_factor(tokens):
     this = tokens.this()
-    coeff = 1
+    coeff = 1.
     while this == '-':
         coeff *= -1
         tokens.get('add_op')
@@ -39,10 +53,10 @@ def get_factor(tokens):
     elif is_func_name(this):
         factor = get_func(tokens, coeff)
     else:
-        factor = get_atom(tokens, coeff)
+        factor = get_literal(tokens, coeff)
     return factor
 
-def get_paren(tokens, coeff = 1):
+def get_paren(tokens, coeff):
     tokens.get('oparen')
     expr = get_expr(tokens)
     end = tokens.get('cparen')
@@ -51,15 +65,15 @@ def get_paren(tokens, coeff = 1):
     else:
         raise SyntaxError("No expected ')'")
 
-def get_func(tokens, coeff = 1):
+def get_func(tokens, coeff):
     name = tokens.get('func')
     expr = get_expr(tokens)
     if name == 'pow(':
         base = expr
         tokens.get('comma')
-        ind = get_expr(tokens)
+        exp = get_expr(tokens)
         tokens.get('cparen')
-        return Pow(base, ind, coeff)
+        return Pow(base, exp, coeff)
     tokens.get('cparen')
     if name == 'sin(':
         return Sin(expr, coeff)
@@ -78,7 +92,7 @@ def get_func(tokens, coeff = 1):
     else:
         print("It shoudn't happen")
 
-def get_atom(tokens, coeff=1):
+def get_literal(tokens, coeff):
     this = tokens.this()
     if is_num(this):
         this = tokens.get('num')
