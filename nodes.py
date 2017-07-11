@@ -77,19 +77,42 @@ class Pow(Factor):
         self.base.simplify()
 
     def simplified(self):
+        self.exp.simplify()
         # if isinstance(self.base.extail, Empty):
-        #     if isinstance(self.base.term.termtail, Empty):
-        #         pass
+        #     if isinstance(self.base.term.termtail, Empty): # when single factor
+        #         self.base.penetrate()
+        #         inner_factor = self.base.term.factor.simplified()
+        #         if isinstance(inner_factor, Paren):
+        #             return Pow(inner_factor.base, self.exp)
+        #         elif isinstance(inner_factor, Pow):
+        #             return Pow(inner_factor.base, self.exp*inner_factor.exp)
+        #         elif isinstance(inner_factor, Num) and\
+        #              self.exp.is_single_factor(Num):
+        #             return Num(math.pow(inner_factor.coeff, self.exp.term.coeff))
+        #         else:
+        #             return self
+        #     else: # when single term
+        #         self.base.penetrate()
+        #         self.base.term.power_by(self.exp)
+        #         return Paren(self.base)
+        # else: # when have extail
+        #     if self.exp.is_single_factor(Num) and\
+        #        self.exp.term.factor.coeff == int(self.exp.term.factor.coeff) and\
+        #        self.exp.term.factor.coeff > 0:
+        #         new = num2expr(1)
+        #         while self.exp.term.factor.coeff > 0:
+        #             new *= self.base
+        #             new.simplify()
+        #             self.exp.term.factor.coeff -= 1
+        #         return Paren(new)
         #     else:
-                
-        # else:
-        #     pass
-            
+        #         self.base.simplify()
+        #         return self
+
         if self.base.is_single_factor():
             self.base.penetrate()
         else:
             self.base.simplify()
-        self.exp.simplify()
         return self
 
 class Literal(Factor):
@@ -179,9 +202,7 @@ class Tan(SinVarFunc):
 
     def simplified(self):
         sin_ind = num2expr(self.exp)
-        print(sin_ind, self.exp)
         cos_ind = num2expr(-self.exp)
-        print(cos_ind, self.exp)
         self.base.simplify()
         sin = Pow(factor2expr(Sin(self.base)), sin_ind)
         cos = Pow(factor2expr(Cos(self.base)), cos_ind)
@@ -198,6 +219,7 @@ class TermCommon:
         self.factor = factor
         self.termtail = termtail
         self.coeff = coeff
+        self.get_coeff()
 
     def simplify(self):
         #before
@@ -258,6 +280,15 @@ class TermCommon:
     def zero_exp_factor_to_one(self):
         if self.factor.exp == 0:
             self.factor = Num(1)
+
+    def power_by(self, exp):
+        if isinstance(self, Term) and\
+           self.coeff != 1:
+            self.factor = Num(self.coeff)
+            self.termtail = self.tailized()
+        self.factor = Pow(factor2expr(self.factor), exp, self.factor.coeff)
+        if isinstance(self.termtail, TermTail):
+            self.termtail.power_by(exp)
 
     def tailized(self):
         return TermTail('*', self.factor, self.termtail, self.coeff)
@@ -444,6 +475,7 @@ class ExprCommon:
         assert isinstance(another, Expr)
         new = copy.deepcopy(self)
         new.add_extail(another.tailized())
+        new.simplify()
         return new
 
     def __mul__(self, another):
@@ -459,16 +491,16 @@ class ExprCommon:
             new = self
 
         if isinstance(another, Factor):
-            new.term *= Term(another)
+            new.term *= another
         elif isinstance(another, TermCommon):
             new.term.add_termtail(another.tailized())
         elif isinstance(another, Expr):
             new.term = Term(Paren(new.term*another))
         else:
             new.term *= another
-        
         if not isinstance(self.extail, Empty):
             new.extail *= another
+        new.simplify()
         return new
 
 class Expr(ExprCommon):
@@ -477,6 +509,10 @@ class Expr(ExprCommon):
 
     def penetrate(self):#have to deal with this
         self.term.factor.penetrate()
+
+    def simplified(self):
+        new = copy.deepcopy(self)
+        return MetaExpr(new).expr
 
     def is_single_factor(self, instance = Factor):
         extail_check = isinstance(self.extail, Empty)
@@ -501,8 +537,17 @@ class ExTail(ExprCommon):
             self.term *= -1
 
 class MetaExpr:
-    def __init__(self, expr):
-        self.expr = expr
+    def __init__(self, given):
+        if isinstance(given, Expr):
+            self.expr = given
+        elif isinstance(given, Term):
+            self.expr = Expr(given)
+        elif isinstance(given, Factor):
+            self.expr = Expr(Term(given))
+        elif is_num(given):
+            self.expr = Expr(Term(Num(given)))
+        else:
+            raise ValueError
         self.simplify()
 
     def simplify(self):
