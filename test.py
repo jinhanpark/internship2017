@@ -30,13 +30,16 @@ main()
     
 
 lst = ['sin(x)', '1/sin(x)', 'pow(sin(pow(x, 1)), -1)', 'pow(sin(x), -1)', '1/pow(sin(x), 1)']
-lst = ['1/x', '1/pow(x, 1)', 'pow(x, -1)']
-#lst = ['2*3-4*5']
+#lst = ['1/x', '1/pow(x, 1)', 'pow(x, -1)']
+lst = ['(x+y)*(x+y)']
+#lst = ['2*3*x*5*8*7']
 #lst = ['x*y', 'x*pow(x, 3)', 'x*y*x', 'x*y*pow(x, 2)']
 #lst = ['x*cos(x) +30 + y - 1', 'y+ cos(x)*x +29', 'pow(y, 1)+pow(x, 1)*pow(cos(pow(x, 1)), 1)+29.00']
+#lst = ['0+2+0+3+0']
+lst = ['2*(3+x)']
 
 for s in lst:
-    expr = get_simple_expr(s)
+    expr = get_meta_expr(s)
 #    print(expr)
 #    dist_term(expr.term)
     #expr.gather_coefficient()
@@ -45,13 +48,13 @@ for s in lst:
     #print expr
 
 
-ex1 = get_meta_expr('2*pow(x, 2)*6*pow(x, 3)*x*3')
-ex2 = get_meta_expr('pow(x, 6)')
-ex3 = ex1+ex2
+# meta1 = get_meta_expr('x+y')
+# meta2 = get_meta_expr('y+1')
+# meta3 = meta1*meta2
 
-print('%s plus\n%s is\n%s\n'%(ex1, ex2, ex3))
+# print('%s *\n%s is\n%s\n'%(meta1, meta2, meta3))
 
-t1 = ex1.expr.term
-t2 = ex2.expr.term
-
-print(t1*t2)
+# ex1 = meta1.expr
+# ex2 = meta2.expr
+# t1 = ex1.term
+# t2 = ex2.term

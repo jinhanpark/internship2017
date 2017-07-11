@@ -1,33 +1,24 @@
 import math
 import copy
 
-class MetaExpr:
-    def __init__(self, expr):
-        self.expr = expr
-        self.simplify()
+def is_num(x):
+    return type(x) == int or type(x) == float
 
-    def simplify(self):
-        before = 'before'
-        after = str(self.expr)
-        while before != after:
-            self.expr.simplify()
-            before = after
-            after = str(self.expr)
-        return self
+def factor2expr(given):
+    new = Expr(Term(given))
+    return new
 
-    def __repr__(self):
-        return str(self)
+def num2expr(given):
+    new = Expr(Term(Num(given)))
+    return new
 
-    def __str__(self):
-        return '%s'%str(self.expr)
+# def expr2paren(given):
+#     temp = Expr(Term(Paren(given)))
+#     return temp
 
-    def __add__(self, another):
-        assert isinstance(another, MetaExpr)
-        return MetaExpr(self.expr + another.expr)
-
-    def __mul__(self, another):
-        assert isinstance(another, MetaExpr)
-        return MetaExpr(self.expr * another.expr)
+# def multiply_factors2expr(given1, given2):
+#     temp = Expr(Term(given1, TermTail('*', Term(given2))))
+#     return temp
 
 class Empty:
     def __init__(self):
@@ -42,217 +33,11 @@ class Empty:
     def __str__(self):
         return ''
 
-class ExprCommon:
-    def __init__(self, term, extail=Empty()):
-        self.term = term
-        self.extail = extail
-
-    def simplify(self):
-        #before recursion : left to right propagation
-        if isinstance(self, ExTail):
-            self.remove_minus_op()
-        self.term.simplify()
-
-        #recursion step
-        self.extail.simplify()
-        
-        #after recursion : right to left propagation
-        self.order_and_gather_terms()
-
-    def order_and_gather_terms(self): #idea from bubble sort
-        if not isinstance(self.extail, Empty):
-            self.extail.order_and_gather_terms()
-            if self.term < self.extail.term:
-                self.term, self.extail.term = self.extail.term, self.term
-            elif self.term == self.extail.term:
-                self.term.coeff += self.extail.term.coeff
-                self.extail = self.extail.extail
-
-    def add_extail(self, given_extail):
-        assert isinstance(given_extail, ExTail)
-        if isinstance(self.extail, Empty):
-            self.extail = given_extail
-        else:
-            self.extail.add_extail(given_extail)
-
-    def __repr__(self):
-        return str(self)
-
-    def __str__(self):
-        if isinstance(self, ExTail):
-            op_str = self.op
-        else:
-            op_str = ''
-        term_str = str(self.term)
-        extail_str = str(self.extail)
-        coeff = self.term.coeff
-        coeff_str = '%.2f*'%coeff
-        if coeff == 1:
-            coeff_str = ''
-        elif coeff == -1:
-            coeff_str = '-'
-        elif isinstance(self.term.factor, Num):
-            coeff_str = '%.2f'%coeff
-            term_str = str(self.term.termtail)
-        return '%s%s%s%s'%(op_str, coeff_str, term_str, extail_str)
-
-    def __neg__(self):
-        new = copy.deepcopy(self)
-        new.term = -new.term
-        if not isinstance(new.extail, Empty):
-            new.extail = -new.extail
-        return new
-
-class Expr(ExprCommon):
-    def __init__(self, term, extail=Empty()):
-        ExprCommon.__init__(self, term, extail)
-
-    def penetrate(self):#have to deal with this
-        self.term.factor.penetrate()
-
-    def is_single_factor(self):
-        extail = self.extail
-        termtail = self.term.termtail
-        factor = self.term.factor
-        return isinstance(extail, Empty) and isinstance(termtail, Empty) and isinstance(factor, Factor)
-
-    def tailized(self):
-        return ExTail('+', self.term, self.extail)
-
-    def __add__(self, another):
-        assert isinstance(another, Expr)
-        new = copy.deepcopy(self)
-        new.add_extail(another.tailized())
-        return new
-
-    def __mul__(self, another):
-        assert isinstance(another, Term) or isinstance(another, Expr)
-        new = copy.deepcopy(self)
-        if isinstance(another, Term):
-            pass
-        elif isinstance(another, Expr):
-            pass
-        return new
-
-class ExTail(ExprCommon):
-    def __init__(self, op, term, extail=Empty()):
-        ExprCommon.__init__(self, term, extail)
-        self.op = op
-
-    def remove_minus_op(self):
-        if self.op == '-':
-            self.op = '+'
-            self.term = -self.term
-
-class TermCommon:
-    def __init__(self, factor, termtail=Empty()):
-        self.factor = factor
-        self.termtail = termtail
-        self.coeff = 1
-
-    def simplify(self):
-        #before
-        if isinstance(self, TermTail):
-            self.remove_div_op()
-        self.factor = self.factor.simplified()
-
-        #recursion
-        self.termtail.simplify()
-
-        #after
-        self.get_coeff()
-        self.remove_nums()
-        self.order_and_gather_factors()
-
-    def get_coeff(self):
-        if not isinstance(self.termtail, Empty):
-            self.coeff *= self.termtail.coeff
-            self.termtail.coeff = 1
-        self.coeff *= self.factor.coeff
-        self.factor.coeff = 1
-
-    def remove_nums(self):
-        if not isinstance(self.termtail, Empty):
-            if isinstance(self.termtail.factor, Num): #remove right num
-                self.termtail = self.termtail.termtail
-            elif isinstance(self.factor, Num): #remove this num
-                self.factor = self.termtail.factor
-                self.termtail = self.termtail.termtail
-
-    def order_and_gather_factors(self):
-        if not isinstance(self.termtail, Empty):
-            self.termtail.order_and_gather_factors()
-            if self.factor < self.termtail.factor:
-                self.factor, self.termtail.factor = self.termtail.factor, self.factor
-            elif self.factor == self.termtail.factor:
-                self.factor.exp += self.termtail.factor.exp
-                self.termtail = self.termtail.termtail
-        
-    def add_termtail(self, given_termtail):
-        assert isinstance(given_termtail, TermTail)
-        if isinstance(self.termtail, Empty):
-            self.termtail = given_termtail
-        else:
-            self.termtail.add_term_tail(given_termtail)
-
-
-class Term(TermCommon):
-    def __init__(self, factor, termtail=Empty()):        
-        TermCommon.__init__(self, factor, termtail)
-
-    def tailized(self):
-        return TermTail('*', self.factor, self.termtail)
-
-    def __repr__(self):
-        return str(self)
-
-    def __str__(self):
-        return '%s%s'%(str(self.factor), str(self.termtail))
-
-    def __mul__(self, another):
-        assert isinstance(another, Term) or isinstance(another, Expr)
-        new = copy.deepcopy(self)
-        if isinstance(another, Term):
-            new.add_termtail(another.tailized())
-        elif isinstance(another, Expr):
-            pass
-        return new
-
-    def __neg__(self):
-        new = copy.deepcopy(self)
-        new.coeff *= -1
-        return new
-
-    def __lt__(self, another):
-        assert isinstance(another, Term)
-        return str(self) < str(another)
-
-    def __eq__(self, another):
-        assert isinstance(another, Term)
-        return str(self) == str(another)
-
-    def __le__(self, another):
-        return self < another or self == another
-
-
-class TermTail(TermCommon):
-    def __init__(self, op, factor, termtail=Empty()):
-        TermCommon.__init__(self, factor, termtail)
-        self.op = op
-
-    def remove_div_op(self):
-        if self.op == '/':
-            self.op = '*'
-            self.factor = self.factor.reciprocal()
-
-    def __repr__(self):
-        return str(self)
-
-    def __str__(self):
-        return '%s%s%s'%(self.op, str(self.factor), str(self.termtail))
+    def __add__(self):
+        pass
 
 class Factor:
-    def __init__(self, base, exp=1.0, coeff=1):
+    def __init__(self, base, exp=1.0, coeff=1.):
         self.coeff = coeff
         self.base = base
         self.exp = exp
@@ -281,7 +66,7 @@ class Factor:
         return self < another or self == another
 
 class Pow(Factor):
-    def __init__(self, base, exp, coeff=1):
+    def __init__(self, base, exp, coeff=1.):
         Factor.__init__(self, base, exp, coeff)
         assert isinstance(base, Expr)
         assert isinstance(exp, Expr)
@@ -298,7 +83,7 @@ class Pow(Factor):
         return self
 
 class Literal(Factor):
-    def __init__(self, value, coeff):
+    def __init__(self, value, coeff=1.):
         Factor.__init__(self, value, coeff=coeff)
 
     def penetrate(self):
@@ -314,15 +99,15 @@ class Literal(Factor):
         return str(self.base)
 
 class Var(Literal):
-    def __init__(self, var, coeff=1):
+    def __init__(self, var, coeff=1.):
         Literal.__init__(self, var, coeff)
 
 class Const(Literal):
-    def __init__(self, const, coeff=1):
+    def __init__(self, const, coeff=1.):
         Literal.__init__(self, const, coeff)
 
 class Num(Literal):
-    def __init__(self, num, coeff=1):
+    def __init__(self, num, coeff=1.):
         Literal.__init__(self, num, coeff)
         self.coeff *= float(self.base)
         self.base = 1
@@ -339,7 +124,7 @@ class Num(Literal):
     #     return '%.2f'%self.base
 
 class SinVarFunc(Factor):
-    def __init__(self, expr, coeff=1):
+    def __init__(self, expr, coeff=1.):
         Factor.__init__(self, expr, coeff)
 
     def penetrate(self):
@@ -356,29 +141,29 @@ class SinVarFunc(Factor):
         return '%s(%s)'%(self.func_name, str(self.base))
 
 class Paren(SinVarFunc): #regard Paren as identity function
-    def __init__(self, expr, coeff=1):
+    def __init__(self, expr, coeff=1.):
         SinVarFunc.__init__(self, expr, coeff)
         self.func_name = ''
 
     def simplified(self):
         self.base.simplify()
-        return Pow(self.base, num2expr(1))
+        return self
 
 
 class Sin(SinVarFunc):
-    def __init__(self, expr, coeff=1):
+    def __init__(self, expr, coeff=1.):
         SinVarFunc.__init__(self, expr, coeff)
         self.func_name = 'sin'
 
 
 class Cos(SinVarFunc):
-    def __init__(self, expr, coeff=1):
+    def __init__(self, expr, coeff=1.):
         SinVarFunc.__init__(self, expr, coeff)
         self.func_name = 'cos'
 
 
 class Tan(SinVarFunc):
-    def __init__(self, expr, coeff=1):
+    def __init__(self, expr, coeff=1.):
         SinVarFunc.__init__(self, expr, coeff)
         self.func_name = 'tan'
 
@@ -394,41 +179,365 @@ class Tan(SinVarFunc):
 
 
 class ArcSin(SinVarFunc):
-    def __init__(self, expr, coeff=1):
+    def __init__(self, expr, coeff=1.):
         SinVarFunc.__init__(self, expr, coeff)
         self.func_name = 'arcsin'
 
 
 class ArcCos(SinVarFunc):
-    def __init__(self, expr, coeff=1):
+    def __init__(self, expr, coeff=1.):
         SinVarFunc.__init__(self, expr, coeff)
         self.func_name = 'arccos'
 
 
 class ArcTan(SinVarFunc):
-    def __init__(self, expr, coeff=1):
+    def __init__(self, expr, coeff=1.):
         SinVarFunc.__init__(self, expr, coeff)
         self.func_name = 'arctan'
 
 
 class Log(SinVarFunc):
-    def __init__(self, expr, coeff=1):
+    def __init__(self, expr, coeff=1.):
         SinVarFunc.__init__(self, expr, coeff)
         self.func_name = 'log'
 
+class TermCommon:
+    def __init__(self, factor, termtail=Empty(), coeff=1.):
+        self.factor = factor
+        self.termtail = termtail
+        self.coeff = coeff
 
-def factor2expr(given):
-    new = Expr(Term(given))
-    return new
+    def simplify(self):
+        #before
+        if not isinstance(self.termtail, Empty):
+            self.termtail.remove_div_op()
+        self.remove_left_nums()
+        self.factor = self.factor.simplified()
+        
+        #recursion
+        self.termtail.simplify()
 
-def num2expr(given):
-    new = Expr(Term(Num(given)))
-    return new
+        #after
+        self.get_coeff()
+        self.remove_right_most_num()
+        self.order_and_gather_factors()
+        self.unparenize_term()
+        self.zero_exp_factor_to_one()
 
-# def expr2paren(given):
-#     temp = Expr(Term(Paren(given)))
-#     return temp
+    def get_coeff(self):
+        if not isinstance(self.termtail, Empty):
+            self.coeff *= self.termtail.coeff
+            self.termtail.coeff = 1.
+        self.coeff *= self.factor.coeff
+        self.factor.coeff = 1.
 
-# def multiply_factors2expr(given1, given2):
-#     temp = Expr(Term(given1, TermTail('*', Term(given2))))
-#     return temp
+    def remove_left_nums(self):
+            while isinstance(self.factor, Num) and\
+                  not isinstance(self.termtail, Empty):
+                self.coeff *= self.factor.coeff
+                self.factor = self.termtail.factor
+                self.termtail = self.termtail.termtail
+
+    def remove_right_most_num(self):
+        if not isinstance(self.termtail, Empty):
+            if isinstance(self.termtail.factor, Num):
+                self.termtail = self.termtail.termtail
+
+    def order_and_gather_factors(self):
+        if not isinstance(self.termtail, Empty):
+            self.termtail.order_and_gather_factors()
+            if self.factor < self.termtail.factor:
+                self.factor, self.termtail.factor = self.termtail.factor, self.factor
+            elif isinstance(self.factor, Paren):
+                pass
+            elif self.factor == self.termtail.factor:
+                self.factor.exp += self.termtail.factor.exp
+                self.termtail = self.termtail.termtail
+
+    def unparenize_term(self):
+        if not isinstance(self.termtail, Empty):
+            if isinstance(self.termtail.factor, Paren):
+                self.factor = Paren(self.termtail.factor.base * self.factor)
+                self.termtail = self.termtail.termtail
+            elif isinstance(self.factor, Paren):
+                self.factor = Paren(self.factor.base * self.termtail)
+                self.termtail = Empty()
+
+    def zero_exp_factor_to_one(self):
+        if self.factor.exp == 0:
+            self.factor = Num(1)
+
+    def tailized(self):
+        return TermTail('*', self.factor, self.termtail, self.coeff)
+
+    def add_termtail(self, given_termtail):
+        assert isinstance(given_termtail, TermTail)
+        self.coeff *= given_termtail.coeff
+        given_termtail.coeff = 1.
+        if isinstance(self.termtail, Empty):
+            self.termtail = given_termtail
+        else:
+            self.termtail.add_termtail(given_termtail)
+
+
+class Term(TermCommon):
+    def __init__(self, factor, termtail=Empty(), coeff=1.):        
+        TermCommon.__init__(self, factor, termtail, coeff)
+
+    def is_single_factor(self, instance=Factor):
+        tail_check = isinstance(self.termtail, Empty)
+        factor_check = isinstance(self.factor, instance)
+        return tail_check and factor_check
+
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        if isinstance(self, TermTail):
+            op_str = self.op
+        else:
+            op_str = ''
+        factor_str = str(self.factor)
+        termtail_str = str(self.termtail)
+        coeff_str = ''
+        # coeff = self.coeff #for debug
+        # if coeff == 1:
+        #     coeff_str = ''
+        # elif coeff == -1:
+        #     coeff_str = '-'
+        # else:
+        #     coeff_str = '%.2f*'
+        return '%s%s%s%s'%(op_str, coeff_str, factor_str, termtail_str)
+
+    def __mul__(self, another):
+        assert isinstance(another, Factor) or\
+            isinstance(another, Term) or\
+            isinstance(another, Expr) or\
+            isinstance(another, float) or\
+            isinstance(another, int)
+
+        new = copy.deepcopy(self)
+        if isinstance(another, Factor):
+            return Term(another) * new
+        elif isinstance(another, Term):
+            new.add_termtail(another.tailized())
+            return new
+        elif isinstance(another, Expr):
+            return another * new
+        else:
+            new.coeff *= another
+            return new
+
+    def __neg__(self):
+        new = copy.deepcopy(self)
+        new.coeff *= -1
+        return new
+
+    def __lt__(self, another):
+        assert isinstance(another, Term)
+        return str(self) < str(another)
+
+    def __eq__(self, another):
+        assert isinstance(another, Term)
+        return str(self) == str(another)
+
+    def __le__(self, another):
+        return self < another or self == another
+
+
+class TermTail(TermCommon):
+    def __init__(self, op, factor, termtail=Empty(), coeff=1.):
+        TermCommon.__init__(self, factor, termtail, coeff)
+        self.op = op
+
+    def remove_div_op(self):
+        if self.op == '/':
+            self.op = '*'
+            self.factor = self.factor.reciprocal()
+
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        return '%s%s%s'%(self.op, str(self.factor), str(self.termtail))
+
+class ExprCommon:
+    def __init__(self, term, extail=Empty()):
+        self.term = term
+        self.extail = extail
+
+    def simplify(self):
+        #before recursion : left to right propagation
+        if isinstance(self, ExTail):
+            self.remove_minus_op()
+        self.term.simplify()
+        self.unparenize_expr()
+
+        #recursion step
+        self.extail.simplify()
+        
+        #after recursion : right to left propagation
+        self.order_and_gather_terms()
+        self.remove_zero_term()
+
+    def unparenize_expr(self):
+        if self.term.is_single_factor(Paren):
+            expr = self.term.factor.base
+            expr *= self.term.coeff
+            expr.add_extail(self.extail)
+            self.term = expr.term
+            self.extail = expr.extail
+
+    def order_and_gather_terms(self): #idea from bubble sort
+        if not isinstance(self.extail, Empty):
+            self.extail.order_and_gather_terms()
+            if self.term < self.extail.term:
+                self.term, self.extail.term = self.extail.term, self.term
+            elif self.term == self.extail.term:
+                self.term.coeff += self.extail.term.coeff
+                self.extail = self.extail.extail
+                if self.term.coeff == 0:
+                    self.term = Term(Num(0))
+
+    def remove_zero_term(self):
+        if not isinstance(self.extail, Empty):
+            if self.extail.term.coeff == 0:
+                self.extail = self.extail.extail
+
+    def add_extail(self, given_extail):
+        assert isinstance(given_extail, ExTail) or isinstance(given_extail, Empty)
+        if isinstance(given_extail, Empty):
+            pass
+        elif isinstance(self.extail, Empty):
+            self.extail = given_extail
+        else:
+            self.extail.add_extail(given_extail)
+
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        if isinstance(self, ExTail):
+            op_str = self.op
+        else:
+            op_str = ''
+        term_str = str(self.term)
+        extail_str = str(self.extail)
+        coeff = self.term.coeff
+        coeff_str = '%.2f*'%coeff
+        if coeff == 1:
+            coeff_str = ''
+        elif coeff == -1:
+            coeff_str = '-'
+        elif isinstance(self.term.factor, Num):
+            coeff_str = '%.2f'%coeff
+            term_str = str(self.term.termtail)
+        return '%s%s%s%s'%(op_str, coeff_str, term_str, extail_str)
+
+    def __eq__(self, another):
+        if is_num(another):
+            another_str = str(MetaExpr(Expr(Term(Num(another)))))
+        else:
+            another_str = str(another)
+        return str(self) == another_str
+
+    def __neg__(self):
+        new = copy.deepcopy(self)
+        new.term = -new.term
+        if not isinstance(new.extail, Empty):
+            new.extail = -new.extail
+        return new
+
+    def __add__(self, another):
+        assert isinstance(another, Expr)
+        new = copy.deepcopy(self)
+        new.add_extail(another.tailized())
+        return new
+
+    def __mul__(self, another):
+        assert isinstance(another, Factor) or\
+            isinstance(another, TermCommon) or\
+            isinstance(another, Expr) or\
+            isinstance(another, float) or\
+            isinstance(another, int)
+        
+        if isinstance(self, Expr):
+            new = copy.deepcopy(self)
+        else:
+            new = self
+
+        if isinstance(another, Factor):
+            new.term *= Term(another)
+        elif isinstance(another, TermCommon):
+            new.term.add_termtail(another.tailized())
+        elif isinstance(another, Expr):
+            new.term = Term(Paren(new.term*another))
+        else:
+            new.term *= another
+        
+        if not isinstance(self.extail, Empty):
+            new.extail *= another
+        return new
+
+class Expr(ExprCommon):
+    def __init__(self, term, extail=Empty()):
+        ExprCommon.__init__(self, term, extail)
+
+    def penetrate(self):#have to deal with this
+        self.term.factor.penetrate()
+
+    def is_single_factor(self, instance = Factor):
+        extail_check = isinstance(self.extail, Empty)
+        termtail_check = isinstance(self.term.termtail, Empty)
+        if instance != 0:
+            factor_check = isinstance(self.term.factor, instance)
+        else:
+            factor_check = isinstance(self.term.factor)
+        return extail_check and termtail_check and factor_check
+
+    def tailized(self):
+        return ExTail('+', self.term, self.extail)
+
+class ExTail(ExprCommon):
+    def __init__(self, op, term, extail=Empty()):
+        ExprCommon.__init__(self, term, extail)
+        self.op = op
+
+    def remove_minus_op(self):
+        if self.op == '-':
+            self.op = '+'
+            self.term *= -1
+
+class MetaExpr:
+    def __init__(self, expr):
+        self.expr = expr
+        self.simplify()
+
+    def simplify(self):
+        before = 'before'
+        after = str(self.expr)
+        while before != after:
+            self.expr.simplify()
+            before = after
+            after = str(self.expr)
+        return self
+
+    def __eq__(self, another):
+        return self.expr == another
+
+    def __neg__(self):
+        return MetaExpr(-self.expr)
+
+    def __add__(self, another):
+        assert isinstance(another, MetaExpr)
+        return MetaExpr(self.expr + another.expr)
+
+    def __mul__(self, another):
+        assert isinstance(another, MetaExpr)
+        return MetaExpr(self.expr * another.expr)
+
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        return '%s'%str(self.expr)
