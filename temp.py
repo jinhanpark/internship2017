@@ -1,7 +1,7 @@
 from my_tokenizer import Tokens
 from tree_generator import *
 import ipdb
-ipdb.set_trace()
+#ipdb.set_trace()
 
 import unittest
 #import sys
@@ -9,15 +9,23 @@ import unittest
 
 class TestSimplification(unittest.TestCase):
 
-    def simple(self):
-
+    def test_numbers(self):
         lst = [['2*3', '6.00'],
                ['2*3*-4', '-24.00'],
-               ['2*x*3', '6.00*pow(x, 1)']
+               ['2*-3*2', '-12.00'],
+               ['3/2*4', '6.00']
         ]
         for pair in lst:
             self.assertEqual(str(get_simple_expr(pair[0])), pair[1])
 
+    def test_single_var(self):
+        lst = [['x', 'pow(x, 1)'],
+               ['2*x', '2.00*pow(x, 1)'],
+               ['x*3', '3.00*pow(x, 1)'],
+               ['1/x', 'pow(x, -1)'],
+        ]
+        for pair in lst:
+            self.assertEqual(str(get_simple_expr(pair[0])), pair[1])
 
 
 def test(cls):
@@ -37,6 +45,7 @@ lst = ['sin(x)', '1/sin(x)', 'pow(sin(pow(x, 1)), -1)', 'pow(sin(x), -1)', '1/po
 lst = ['pow(2*(x+y), 1.5)', 'pow(x+y, 2)', 'pow(x+1, 3)', 'sin(x)', 'cos(x)*tan(x)', 'log(x)', 'pow(8*x+4*y, 0.5)*pow(2*x+y, 1.5)']
 lst = ['pow(0.5*x+y, 0.2)*pow(2*x+4*y, 1.5)*pow(0.5*x+y, 1.3)', 'pow(x+2*y, 0.5)*pow((2*x+4*y), 1.5)', 'pow(2*x+4*y, 1.5)', 'pow((2*x+4*y), 1.5)']
 #lst = ['pow(2*x+4*y, .5)']
+#lst = ['2*3/2']
 
 
 for s in lst:

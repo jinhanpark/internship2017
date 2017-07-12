@@ -226,12 +226,13 @@ class TermCommon:
         self.factor = factor
         self.termtail = termtail
         self.coeff = coeff
+        self.remove_div_op()
         self.get_coeff()
 
     def simplify(self):
         #before
-        if not isinstance(self.termtail, Empty):
-            self.termtail.remove_div_op()
+        # if isinstance(self, TermTail): #may not need this
+        #     self.termtail.remove_div_op()
         self.remove_left_nums()
         self.factor = self.factor.simplified()
         
@@ -245,8 +246,13 @@ class TermCommon:
         self.unparenize_term()
         self.zero_exp_factor_to_one()
 
+    def remove_div_op(self):
+        if isinstance(self, TermTail) and self.op == '/':
+            self.op = '*'
+            self.factor = self.factor.reciprocal()
+
     def get_coeff(self):
-        if not isinstance(self.termtail, Empty):
+        if isinstance(self.termtail, TermTail):
             self.coeff *= self.termtail.coeff
             self.termtail.coeff = 1.
         self.coeff *= self.factor.coeff
@@ -254,18 +260,18 @@ class TermCommon:
 
     def remove_left_nums(self):
             while isinstance(self.factor, Num) and\
-                  not isinstance(self.termtail, Empty):
+                  isinstance(self.termtail, TermTail):
                 self.coeff *= self.factor.coeff
                 self.factor = self.termtail.factor
                 self.termtail = self.termtail.termtail
 
     def remove_right_most_num(self):
-        if not isinstance(self.termtail, Empty):
+        if isinstance(self.termtail, TermTail):
             if isinstance(self.termtail.factor, Num):
                 self.termtail = self.termtail.termtail
 
     def order_and_gather_factors(self):
-        if not isinstance(self.termtail, Empty):
+        if isinstance(self.termtail, TermTail):
             self.termtail.order_and_gather_factors()
             if self.factor < self.termtail.factor:
                 self.factor, self.termtail.factor = self.termtail.factor, self.factor
@@ -276,7 +282,7 @@ class TermCommon:
                 self.termtail = self.termtail.termtail
 
     def unparenize_term(self):
-        if not isinstance(self.termtail, Empty):
+        if isinstance(self.termtail, TermTail):
             if isinstance(self.termtail.factor, Paren):
                 self.factor = Paren(self.termtail.factor.base * self.factor)
                 self.termtail = self.termtail.termtail
@@ -379,13 +385,8 @@ class Term(TermCommon):
 
 class TermTail(TermCommon):
     def __init__(self, op, factor, termtail=Empty(), coeff=1.):
-        TermCommon.__init__(self, factor, termtail, coeff)
         self.op = op
-
-    def remove_div_op(self):
-        if self.op == '/':
-            self.op = '*'
-            self.factor = self.factor.reciprocal()
+        TermCommon.__init__(self, factor, termtail, coeff)
 
     def __repr__(self):
         return str(self)
@@ -397,11 +398,12 @@ class ExprCommon:
     def __init__(self, term, extail=Empty()):
         self.term = term
         self.extail = extail
+        self.remove_minus_op()
 
     def simplify(self):
         #before recursion : left to right propagation
-        if isinstance(self, ExTail):
-            self.remove_minus_op()
+        # if isinstance(self, ExTail): #may not need this
+        #     self.remove_minus_op()
         self.term.simplify()
         self.unparenize_expr()
 
@@ -412,6 +414,11 @@ class ExprCommon:
         self.order_and_gather_terms()
         self.remove_zero_term()
 
+    def remove_minus_op(self):
+        if isinstance(self, ExTail) and self.op == '-':
+            self.op = '+'
+            self.term *= -1
+
     def unparenize_expr(self):
         if self.term.is_single_factor(Paren):
             expr = self.term.factor.base
@@ -421,7 +428,7 @@ class ExprCommon:
             self.extail = expr.extail
 
     def order_and_gather_terms(self): #idea from bubble sort
-        if not isinstance(self.extail, Empty):
+        if isinstance(self.extail, ExTail):
             self.extail.order_and_gather_terms()
             if self.term < self.extail.term:
                 self.term, self.extail.term = self.extail.term, self.term
@@ -432,7 +439,7 @@ class ExprCommon:
                     self.term = Term(Num(0))
 
     def remove_zero_term(self):
-        if not isinstance(self.extail, Empty):
+        if isinstance(self.extail, ExTail):
             if self.extail.term.coeff == 0:
                 self.extail = self.extail.extail
 
@@ -487,7 +494,7 @@ class ExprCommon:
     def __neg__(self):
         new = copy.deepcopy(self)
         new.term = -new.term
-        if not isinstance(new.extail, Empty):
+        if isinstance(new.extail, ExTail):
             new.extail = -new.extail
         return new
 
@@ -518,7 +525,7 @@ class ExprCommon:
             new.term = Term(Paren(new.term*another))
         else:
             new.term *= another
-        if not isinstance(self.extail, Empty):
+        if isinstance(self.extail, ExTail):
             new.extail *= another
         new.simplify()
         return new
@@ -548,13 +555,8 @@ class Expr(ExprCommon):
 
 class ExTail(ExprCommon):
     def __init__(self, op, term, extail=Empty()):
-        ExprCommon.__init__(self, term, extail)
         self.op = op
-
-    def remove_minus_op(self):
-        if self.op == '-':
-            self.op = '+'
-            self.term *= -1
+        ExprCommon.__init__(self, term, extail)
 
 class MetaExpr:
     def __init__(self, given):
