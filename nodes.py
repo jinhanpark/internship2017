@@ -79,13 +79,13 @@ class Pow(Factor):
         self.base.simplify()
 
     def simplified(self):
-        self.exp.simplify()
+        self.exp = self.exp.simplified()
         if isinstance(self.base.extail, Empty):
             if isinstance(self.base.term.termtail, Empty): # when single factor
                 self.base.penetrate()
                 inner_factor = self.base.term.factor
                 if isinstance(inner_factor, Paren):
-                    return Pow(inner_factor.base, self.exp)
+                    return Pow(inner_factor.base, self.exp*inner_factor.exp)
                 elif isinstance(inner_factor, Pow):
                     return Pow(inner_factor.base, self.exp*inner_factor.exp)
                 elif isinstance(inner_factor, Num) and\
@@ -95,19 +95,21 @@ class Pow(Factor):
                     return self
             else: # when single term
                 self.base.term.power_by(self.exp)
-                return Paren(self.base)
+                return Paren(self.base.simplified())
         else: # when have extail
+            self.base = self.base.simplified()
+            if self.base.term.coeff != 1:
+                new = Expr(Term(Num(self.base.term.coeff), TermTail('*', Paren(self.base.monic()))))
+                return Pow(new, self.exp)
             if self.exp.is_single_factor(Num) and\
                self.exp.term.coeff == int(self.exp.term.coeff) and\
                self.exp.term.coeff > 0:
                 new = num2expr(1)
                 while self.exp.term.coeff > 0:
                     new *= self.base
-                    new.simplify()
                     self.exp.term.coeff -= 1
                 return Paren(new)
             else:
-                self.base.simplify()
                 return self
 
         # if self.base.is_single_factor():
@@ -293,7 +295,7 @@ class TermCommon:
             self.coeff = 1.
             self.termtail = self.tailized()
             self.factor = new_factor
-        self.factor = Pow(factor2expr(self.factor), exp, self.factor.coeff)
+        self.factor = Pow(factor2expr(self.factor), exp, self.factor.coeff).simplified()
         if isinstance(self.termtail, TermTail):
             self.termtail.power_by(exp)
 
@@ -442,6 +444,17 @@ class ExprCommon:
             self.extail = given_extail
         else:
             self.extail.add_extail(given_extail)
+
+    def monic(self, div_factor=1.):
+        if isinstance(self, Expr):
+            new = copy.deepcopy(self)
+            div_factor = self.term.coeff
+        else:
+            new = self
+        new.term.coeff /= div_factor
+        if isinstance(new.extail, ExTail):
+            new.extail = new.extail.monic(div_factor)
+        return new
 
     def __repr__(self):
         return str(self)
