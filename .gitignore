@@ -53,6 +53,7 @@ flycheck_*.el
 __pycache__/
 *.py[cod]
 *$py.class
+skip.py
 
 
 # C extensions
