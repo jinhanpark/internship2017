@@ -10,9 +10,13 @@ def factor2expr(given):
     return new
 
 def num2expr(given):
-    copied = copy.deepcopy(given)
-    new = Expr(Term(Num(copied)))
-    return new
+    if isinstance(given, Expr):
+        assert given.is_single_factor(Num)
+        return given
+    else:
+        copied = copy.deepcopy(given)
+        new = Expr(Term(Num(copied)))
+        return new
 
 # def expr2paren(given):
 #     temp = Expr(Term(Paren(given)))
@@ -47,7 +51,10 @@ class Factor:
     def reciprocal(self):
         new = copy.deepcopy(self)
         new.coeff = math.pow(self.coeff, -1)
-        new.exp = -self.exp
+        if is_num(self.exp):
+            new.exp = num2expr(-self.exp)
+        else:
+            new.exp = -self.exp
         return new
 
     def __repr__(self):
@@ -55,7 +62,7 @@ class Factor:
 
     def __str__(self):
         coeff_str = ''
-#        coeff_str = 'fact%.2f*'%self.coeff
+#        coeff_str = 'fact%f*'%self.coeff
         return '%spow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
 
     def __lt__(self, another):
@@ -82,11 +89,12 @@ class Pow(Factor):
         self.exp = self.exp.simplified()
         if isinstance(self.base.extail, Empty):
             if isinstance(self.base.term.termtail, Empty): # when single factor
+                inner_factor = self.base.term.factor
+                if isinstance(inner_factor, Pow):
+                    return Pow(inner_factor.base, self.exp*inner_factor.exp)
                 self.base.penetrate()
                 inner_factor = self.base.term.factor
                 if isinstance(inner_factor, Paren):
-                    return Pow(inner_factor.base, self.exp*inner_factor.exp)
-                elif isinstance(inner_factor, Pow):
                     return Pow(inner_factor.base, self.exp*inner_factor.exp)
                 elif isinstance(inner_factor, Num) and\
                      self.exp.is_single_factor(Num):
@@ -101,9 +109,9 @@ class Pow(Factor):
             if self.base.term.coeff != 1:
                 new = Expr(Term(Num(self.base.term.coeff), TermTail('*', Paren(self.base.monic()))))
                 return Pow(new, self.exp)
-            if self.exp.is_single_factor(Num) and\
+            elif self.exp.is_single_factor(Num) and\
                self.exp.term.coeff == int(self.exp.term.coeff) and\
-               self.exp.term.coeff > 0:
+               self.exp.term.coeff > 1:
                 new = num2expr(1)
                 while self.exp.term.coeff > 0:
                     new *= self.base
@@ -133,7 +141,7 @@ class Literal(Factor):
 
     def __str__(self):
         coeff_str = ''
-#        coeff_str = 'literal%.2f*'%self.coeff
+#        coeff_str = 'literal%f*'%self.coeff
         return '%s%s'%(coeff_str, str(self.base))
 
 class Var(Literal):
@@ -159,7 +167,7 @@ class Num(Literal):
         return new
 
     # def __str__(self):
-    #     return '%.2f'%self.base
+    #     return '%f'%self.base
 
 class SinVarFunc(Factor):
     def __init__(self, expr, coeff=1.):
@@ -177,7 +185,7 @@ class SinVarFunc(Factor):
 
     def __str__(self):
         coeff_str = ''
-#        coeff_str = 'fact%.2f*'%self.coeff
+#        coeff_str = 'fact%f*'%self.coeff
         return '%s%s(%s)'%(coeff_str, self.func_name, str(self.base))
 
 class Paren(SinVarFunc): #regard Paren as identity function
@@ -186,8 +194,18 @@ class Paren(SinVarFunc): #regard Paren as identity function
         self.func_name = ''
 
     def simplified(self):
-        self.base.simplify()
-        return self
+        if self.base.is_single_factor():
+            self.base.penetrate()
+            new = copy.deepcopy(self.base.term.factor)
+            new.coeff *= self.base.term.coeff
+            new.exp = self.exp*new.exp
+            return new
+        elif self.exp == 1:
+            self.base.simplify()
+            return self
+        else:
+            self.base.simplify()
+            return Pow(self.base, self.exp)
 
 
 class Sin(SinVarFunc):
@@ -283,10 +301,12 @@ class TermCommon:
 
     def unparenize_term(self):
         if isinstance(self.termtail, TermTail):
-            if isinstance(self.termtail.factor, Paren):
+            if isinstance(self.termtail.factor, Paren) and\
+               self.termtail.factor.exp == 1:
                 self.factor = Paren(self.termtail.factor.base * self.factor)
                 self.termtail = self.termtail.termtail
-            elif isinstance(self.factor, Paren):
+            elif isinstance(self.factor, Paren) and\
+                 self.factor.exp == 1:
                 self.factor = Paren(self.factor.base * self.termtail)
                 self.termtail = Empty()
 
@@ -295,13 +315,12 @@ class TermCommon:
             self.factor = Num(1)
 
     def power_by(self, exp):
-        if isinstance(self, Term) and\
-           self.coeff != 1:
+        if self.coeff != 1:
             new_factor = Num(self.coeff)
             self.coeff = 1.
             self.termtail = self.tailized()
             self.factor = new_factor
-        self.factor = Pow(factor2expr(self.factor), exp, self.factor.coeff).simplified()
+        self.factor = Pow(factor2expr(self.factor), exp).simplified()
         if isinstance(self.termtail, TermTail):
             self.termtail.power_by(exp)
 
@@ -344,7 +363,7 @@ class Term(TermCommon):
         # elif coeff == -1:
         #     coeff_str = '-'
         # else:
-        #     coeff_str = 'term%.2f*'%coeff #end for debug
+        #     coeff_str = 'term%f*'%coeff #end for debug
         return '%s%s%s%s'%(op_str, coeff_str, factor_str, termtail_str)
 
     def __mul__(self, another):
@@ -420,7 +439,8 @@ class ExprCommon:
             self.term *= -1
 
     def unparenize_expr(self):
-        if self.term.is_single_factor(Paren):
+        if self.term.is_single_factor(Paren) and\
+           self.term.factor.exp == 1:
             expr = self.term.factor.base
             expr *= self.term.coeff
             expr.add_extail(self.extail)
@@ -474,13 +494,13 @@ class ExprCommon:
         term_str = str(self.term)
         extail_str = str(self.extail)
         coeff = self.term.coeff
-        coeff_str = '%.2f*'%coeff
+        coeff_str = '%f*'%coeff
         if coeff == 1:
             coeff_str = ''
         elif coeff == -1:
             coeff_str = '-'
         elif isinstance(self.term.factor, Num):
-            coeff_str = '%.2f'%coeff
+            coeff_str = '%f'%coeff
             term_str = str(self.term.termtail)
         return '%s%s%s%s'%(op_str, coeff_str, term_str, extail_str)
 

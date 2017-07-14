@@ -3,15 +3,19 @@ from my_tokenizer import *
 
 def get_meta_expr(s):
     tokens = Tokens(s)
-    return MetaExpr(get_expr(tokens))
+    expr = get_expr(tokens)
+    assert not tokens.have_elt()
+    return MetaExpr(expr)
 
 def get_simple_expr(s):
-    tokens = Tokens(s)
-    return MetaExpr(get_expr(tokens)).expr
+    meta = get_meta_expr(s)
+    return meta.expr
 
 def get_expr_from_string(s):
     tokens = Tokens(s)
-    return get_expr(tokens)
+    expr = get_expr(tokens)
+    assert not tokens.have_elt()
+    return expr
 
 def get_expr(tokens):
     term = get_term(tokens)
