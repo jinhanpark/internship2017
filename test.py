@@ -39,6 +39,10 @@ class TestSimplification(unittest.TestCase):
 
     def test_pow(self):
         lst = (('1/x', 'pow(x, -1)'),
+               ('-1/(-x)', '1/x'),
+               ('-1/-x', '1/x'),
+               ('2/(2*x)', '1/x'),
+               ('x/(x*y)', '1/y'),
                ('pow(pow(x, 1), 1)', 'pow(x, 1)'),
                ('pow(pow(x, 2), 3)', 'pow(x, 6.000000)'),
                ('1/pow(x, 1)', 'pow(x, -1)'),
