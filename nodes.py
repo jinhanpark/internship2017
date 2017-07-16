@@ -87,31 +87,17 @@ class Pow(Factor):
 
     def simplified(self):
         self.exp = self.exp.simplified()
-        if isinstance(self.base.extail, Empty):
-            if isinstance(self.base.term.termtail, Empty): # when single factor
-                inner_factor = self.base.term.factor
-                if isinstance(inner_factor, Pow):
-                    return Pow(inner_factor.base, self.exp*inner_factor.exp)
-                self.base.penetrate()
-                inner_factor = self.base.term.factor
-                if isinstance(inner_factor, Paren):
-                    return Pow(inner_factor.base, self.exp*inner_factor.exp)
-                elif isinstance(inner_factor, Num) and\
-                     self.exp.is_single_factor(Num):
-                    return Num(math.pow(self.base.term.coeff, self.exp.term.coeff))
-                else:
-                    return self
-            else: # when single term
-                self.base.term.power_by(self.exp)
-                return Paren(self.base.simplified())
-        else: # when have extail
+        if self.base.is_single_factor(Num) and\
+           self.exp.is_single_factor(Num):
+            return Num(math.pow(self.base.term.coeff, self.exp.term.coeff))
+        elif isinstance(self.base.extail, ExTail):
             self.base = self.base.simplified()
             if self.base.term.coeff != 1:
                 new = Expr(Term(Num(self.base.term.coeff), TermTail('*', Paren(self.base.monic()))))
                 return Pow(new, self.exp)
             elif self.exp.is_single_factor(Num) and\
-               self.exp.term.coeff == int(self.exp.term.coeff) and\
-               self.exp.term.coeff > 1:
+                 self.exp.term.coeff > 1 and\
+                 self.exp.term.coeff == int(self.exp.term.coeff):
                 new = num2expr(1)
                 while self.exp.term.coeff > 0:
                     new *= self.base
@@ -119,12 +105,24 @@ class Pow(Factor):
                 return Paren(new)
             else:
                 return self
-
-        # if self.base.is_single_factor():
-        #     self.base.penetrate()
-        # else:
-        #     self.base.simplify()
-        # return self
+        elif isinstance(self.base.term.termtail, TermTail) or\
+             self.base.term.coeff != 1:
+            self.base.term.power_by(self.exp)
+            return Paren(self.base.simplified())
+        else:
+            before_factor = copy.deepcopy(self.base.term.factor)
+            self.base.penetrate()
+            inner_factor = self.base.term.factor
+            if isinstance(before_factor, Pow):
+                return Pow(before_factor.base, self.exp*before_factor.exp)
+            elif isinstance(inner_factor, Paren):
+                return Pow(inner_factor.base, self.exp*inner_factor.exp)
+            elif isinstance(inner_factor, Num) and\
+                 self.exp.is_single_factor(Num):
+                return Num(math.pow(self.base.term.coeff, self.exp.term.coeff))
+            else:
+                return self
+ 
 
 class Literal(Factor):
     def __init__(self, value, coeff=1.):

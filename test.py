@@ -39,9 +39,9 @@ class TestSimplification(unittest.TestCase):
 
     def test_pow(self):
         lst = (('1/x', 'pow(x, -1)'),
-               ('-1/(-x)', '1/x'),
                ('-1/-x', '1/x'),
                ('2/(2*x)', '1/x'),
+               ('1.5/(1.5*x)', '1/x'),
                ('x/(x*y)', '1/y'),
                ('pow(pow(x, 1), 1)', 'pow(x, 1)'),
                ('pow(pow(x, 2), 3)', 'pow(x, 6.000000)'),
@@ -61,6 +61,7 @@ class TestSimplification(unittest.TestCase):
                ('pow(8*x+4*y, 0.5)*pow(2*x+y, 1.5)', '2.000000*pow(y, 2.000000)+8.000000*pow(y, 1)*pow(x, 1)+8.000000*pow(x, 2.000000)'),
                ('pow(0.5*x+y, 0.2)*pow(2*x+4*y, 1.5)*pow(0.5*x+y, 1.3)', '8.000000*pow(y, 3.000000)+12.000000*pow(y, 2.000000)*pow(x, 1)+6.000000*pow(y, 1)*pow(x, 2.000000)+pow(x, 3.000000)'),
                ('pow(2*x+4*y, 1.5)', '8.000000*pow(pow(y, 1)+0.500000*pow(x, 1), 1.500000)'),
+               ('(x-y)*(pow(x, 2) + x*y + pow(y, 2))', 'pow(x, 3) - pow(y, 3)')
         )
         for pair in lst:
             self.assertEqual(str(get_simple_expr(pair[0])), get_simple_expr(pair[1]))
@@ -69,6 +70,7 @@ class TestSimplification(unittest.TestCase):
         lst = (('(2)', '2'),
                ('(x)', 'x'),
                ('1/(x)', '1/x'),
+               ('-1/(-x)', '1/x'),
                ('1/(x+y)', 'pow(x+y, -1)'),
                ('pow(2*(x), 2)', 'pow(2*x, 2)'),
                ('1/(pow(x, 1))', 'pow(x, -1)'),
