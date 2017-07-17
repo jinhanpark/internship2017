@@ -46,7 +46,10 @@ class Factor:
     def __init__(self, base, exp=1.0, coeff=1.):
         self.coeff = coeff
         self.base = base
-        self.exp = exp
+        if isinstance(exp, Expr):
+            self.exp = exp
+        else:
+            self.exp = num2expr(exp)
 
     def reciprocal(self):
         new = copy.deepcopy(self)
@@ -96,7 +99,7 @@ class Pow(Factor):
                 new = Expr(Term(Num(self.base.term.coeff), TermTail('*', Paren(self.base.monic()))))
                 return Pow(new, self.exp)
             elif self.exp.is_single_factor(Num) and\
-                 self.exp.term.coeff > 1 and\
+                 self.exp.term.coeff > 0 and\
                  self.exp.term.coeff == int(self.exp.term.coeff):
                 new = num2expr(1)
                 while self.exp.term.coeff > 0:
@@ -110,7 +113,8 @@ class Pow(Factor):
             self.base.term.power_by(self.exp)
             return Paren(self.base.simplified())
         else:
-            before_factor = copy.deepcopy(self.base.term.factor)
+            before_base = copy.deepcopy(self.base)
+            before_factor = before_base.term.factor
             self.base.penetrate()
             inner_factor = self.base.term.factor
             if isinstance(before_factor, Pow):
@@ -120,6 +124,9 @@ class Pow(Factor):
             elif isinstance(inner_factor, Num) and\
                  self.exp.is_single_factor(Num):
                 return Num(math.pow(self.base.term.coeff, self.exp.term.coeff))
+            elif isinstance(inner_factor, Log) and\
+                 str(inner_factor.base.term.factor.base) == 'e':
+                return Pow(inner_factor.base.term.factor.exp, self.exp)
             else:
                 return self
  
@@ -152,7 +159,9 @@ class Const(Literal):
 
 class Num(Literal):
     def __init__(self, num, coeff=1.):
-        Literal.__init__(self, num, coeff)
+        self.coeff = coeff
+        self.base = num
+        self.exp = 1.
         self.coeff *= float(self.base)
         self.base = 1
 
@@ -188,15 +197,15 @@ class SinVarFunc(Factor):
 
 class Paren(SinVarFunc): #regard Paren as identity function
     def __init__(self, expr, coeff=1.):
-        SinVarFunc.__init__(self, expr, coeff)
         self.func_name = ''
+        SinVarFunc.__init__(self, expr, coeff)
 
     def simplified(self):
         if self.base.is_single_factor():
             self.base.penetrate()
             new = copy.deepcopy(self.base.term.factor)
             new.coeff *= self.base.term.coeff
-            new.exp = self.exp*new.exp
+            new.exp = self.exp * new.exp
             return new
         elif self.exp == 1:
             self.base.simplify()
@@ -234,8 +243,42 @@ class Tan(SinVarFunc):
 
 class Log(SinVarFunc):
     def __init__(self, expr, coeff=1.):
-        SinVarFunc.__init__(self, expr, coeff)
         self.func_name = 'log'
+        SinVarFunc.__init__(self, expr, coeff)
+        assert self.exp == 1
+
+    def simplified(self):
+        outer_exp = self.exp.simplified()
+        self.exp = num2expr(1)
+        if self.base.is_single_factor(Num):
+            return Pow(num2expr(math.log(self.base.term.coeff)), outer_exp)
+        if isinstance(self.base.extail, ExTail):
+            self.base = self.base.simplified()
+            if self.base.term.coeff != 1:
+                new = Expr(Term(Num(math.log(self.base.term.coeff))),
+                           ExTail('+', Term(Log(self.base.monic))))
+                return Pow(factor2expr(Paren(new)), outer_exp)
+            else:
+                return Pow(factor2expr(self), outer_exp)
+        elif isinstance(self.base.term.termtail, TermTail) or\
+             self.base.term.coeff != 1:
+            new = self.base.term.log_distributed()
+            return Pow(new, outer_exp)
+        else:
+            inner_factor = self.base.term.factor
+            if inner_factor.exp != 1:
+                exp_backup = inner_factor.exp
+                inner_factor.exp = num2expr(1)
+                new = Expr(Term(Paren(exp_backup), TermTail('*', self)))
+                return Pow(new, outer_exp)
+            elif isinstance(inner_factor, Const) and\
+                 str(self.base) == 'e':
+                    return Num(1)
+            elif isinstance(inner_factor, Pow):
+                return Log(inner_factor.base)
+            else:
+                return Pow(factor2expr(self), outer_exp)
+
 
 class TermCommon:
     def __init__(self, factor, termtail=Empty(), coeff=1.):
@@ -247,10 +290,8 @@ class TermCommon:
 
     def simplify(self):
         #before
-        # if isinstance(self, TermTail): #may not need this
-        #     self.termtail.remove_div_op()
         self.remove_left_nums()
-        self.factor = self.factor.simplified()
+        self.simplify_factor()
         
         #recursion
         self.termtail.simplify()
@@ -261,6 +302,8 @@ class TermCommon:
         self.order_and_gather_factors()
         self.unparenize_term()
         self.zero_exp_factor_to_one()
+        if isinstance(self, Term):
+            self.gather_pows_with_same_exp()
 
     def remove_div_op(self):
         if isinstance(self, TermTail) and self.op == '/':
@@ -273,6 +316,16 @@ class TermCommon:
             self.termtail.coeff = 1.
         self.coeff *= self.factor.coeff
         self.factor.coeff = 1.
+
+    def simplify_factor(self):
+        before = 'before'
+        after = str(self.factor)
+        while before != after:
+            self.coeff *= self.factor.coeff
+            self.factor.coeff = 1
+            self.factor = self.factor.simplified()
+            before = after
+            after = str(self.factor)
 
     def remove_left_nums(self):
             while isinstance(self.factor, Num) and\
@@ -296,6 +349,24 @@ class TermCommon:
             elif self.factor == self.termtail.factor:
                 self.factor.exp += self.termtail.factor.exp
                 self.termtail = self.termtail.termtail
+
+    def gather_pows_with_same_exp(self):
+        traveler_before = self
+        traveler = self.termtail
+        while isinstance(traveler, TermTail):
+            if isinstance(self.factor, Pow) and\
+               isinstance(traveler.factor, Pow) and\
+               self.factor.exp == traveler.factor.exp and\
+               (isinstance(self.factor.base.extail, ExTail) or\
+                isinstance(traveler.factor.base.extail, ExTail)):
+                self.factor.base = self.factor.base * traveler.factor.base
+                self.factor.base.simplify()
+                traveler = traveler.termtail
+                traveler_before.termtail = traveler
+            else:
+                traveler_before = traveler
+                traveler = traveler.termtail
+                
 
     def unparenize_term(self):
         if isinstance(self.termtail, TermTail):
@@ -321,6 +392,25 @@ class TermCommon:
         self.factor = Pow(factor2expr(self.factor), exp).simplified()
         if isinstance(self.termtail, TermTail):
             self.termtail.power_by(exp)
+
+    def log_distributed(self):
+        if self.coeff != 1:
+            new_factor = Num(self.coeff)
+            self.coeff = 1.
+            self.termtail = self.tailized()
+            self.factor = new_factor
+        
+        new_term = Term(Log(factor2expr(self.factor)))
+        if isinstance(self.termtail, TermTail):
+            new_extail = self.termtail.log_distributed()
+        else:
+            new_extail = Empty()
+    
+        if isinstance(self, Term):
+            return Expr(new_term, new_extail)
+        elif isinstance(self, TermTail):
+            return ExTail('+', new_term, new_extail)
+            
 
     def tailized(self):
         return TermTail('*', self.factor, self.termtail, self.coeff)
@@ -419,9 +509,7 @@ class ExprCommon:
 
     def simplify(self):
         #before recursion : left to right propagation
-        # if isinstance(self, ExTail): #may not need this
-        #     self.remove_minus_op()
-        self.term.simplify()
+        self.simplify_term()
         self.unparenize_expr()
 
         #recursion step
@@ -435,6 +523,14 @@ class ExprCommon:
         if isinstance(self, ExTail) and self.op == '-':
             self.op = '+'
             self.term *= -1
+
+    def simplify_term(self):
+        before = 'before'
+        after = str(self.term)
+        while before != after:
+            self.term.simplify()
+            before = after
+            after = str(self.term)
 
     def unparenize_expr(self):
         if self.term.is_single_factor(Paren) and\
