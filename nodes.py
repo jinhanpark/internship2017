@@ -65,8 +65,11 @@ class Factor:
 
     def __str__(self):
         coeff_str = ''
-#        coeff_str = 'fact%f*'%self.coeff
-        return '%spow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
+        #coeff_str = 'fact%f*'%self.coeff
+        if self.exp != 1:
+            return '%spow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
+        else:
+            return '%s%s'%(coeff_str, str(self.base))
 
     def __lt__(self, another):
         assert isinstance(another, Factor)

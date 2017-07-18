@@ -29,14 +29,16 @@ def diff_term(given, scope):
     left_term = Term(diff_factor(given.factor, scope),
                      given.termtail)
     if isinstance(given.termtail, Empty):
-        return left_term
+        result = left_term
     else:
         right_term = Term(given.factor,
                           diff_termtail(given.termtail, scope))
         total = Expr(left_term,
                      ExTail('+', right_term))
         new = Term(Paren(total))
-        return new
+        result = new
+    result.coeff = given.coeff
+    return result
 
 
 def diff_termtail(given, scope):
