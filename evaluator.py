@@ -67,6 +67,8 @@ def eval_factor(given):
         return eval_func(given)
     elif isinstance(given, Pow):
         return eval_pow(given)
+    else:
+        raise ValueError
 
 def eval_literal(given):
     assert not isinstance(given, Var) # no variable
