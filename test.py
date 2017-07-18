@@ -91,6 +91,7 @@ class TestSimplification(unittest.TestCase):
                ('1/pow(sin(x), 1)', 'pow(sin(pow(x, 1)), -1)'),
                ('cos(x)*tan(x)', 'sin(x)'),
                ('sin(x)/tan(x)', 'cos(x)'),
+               ('-sin(x)', '-pow(sin(x), 1)')
         )
         for pair in lst:
             self.assertEqual(str(get_simple_expr(pair[0])), get_simple_expr(pair[1]))
@@ -108,13 +109,37 @@ class TestSimplification(unittest.TestCase):
         for pair in lst:
             self.assertEqual(str(get_simple_expr(pair[0])), get_simple_expr(pair[1]))
 
+class TestEvaluation(unittest.TestCase):
+
+    def test_numbers(self):
+        lst = (('2', 2),
+        )
+        for pair in lst:
+            self.assertEqual(eval_meta(get_meta_expr(pair[0])), pair[1])
+
+
+class TestDifferentiation(unittest.TestCase):
+
+    def test_numbers(self):
+        lst = (('2', '0'),
+        )
+        for pair in lst:
+            self.assertEqual(diff_meta(get_meta_expr(pair[0])), get_meta_expr(pair[1]))
+
+    def test_trigonometric(self):
+        lst = (('sin(x)', 'cos(x)'),
+               ('cos(x)', '-sin(x)'),
+        )
+        for pair in lst:
+            self.assertEqual(diff_meta(get_meta_expr(pair[0])), get_meta_expr(pair[1]))
+
 
 def test(cls):
     suite = unittest.TestLoader().loadTestsFromTestCase(cls)
     unittest.TextTestRunner(verbosity=2).run(suite)
 
 def main():
-    tests = [TestSimplification]
+    tests = [TestSimplification, TestEvaluation, TestDifferentiation]
     for t in tests:
         test(t)
 

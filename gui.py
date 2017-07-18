@@ -92,7 +92,7 @@ class MyWindow(QMainWindow, ui_imported):
         left_end = float(self.funcFrom.value())
         right_end = float(self.funcTo.value())
         assert left_end < right_end
-        xs = np.arange(left_end, right_end+0.02, 0.02)
+        xs = np.arange(left_end, right_end+0.02, 0.01)
         fx = self.eval_result(meta, xs)
         graph.clear()
         graph.plot(xs, fx)
@@ -129,7 +129,7 @@ class MyWindow(QMainWindow, ui_imported):
         left_end = float(self.deriFrom.text())
         right_end = float(self.deriTo.text())
         assert left_end < right_end
-        xs = np.arange(left_end, right_end+0.02, 0.02)
+        xs = np.arange(left_end, right_end+0.02, 0.01)
         fx = self.eval_result(deri, xs, self.scope)
         graph.clear()
         graph.plot(xs, fx)
