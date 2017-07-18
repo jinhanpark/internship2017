@@ -36,7 +36,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>ico.png.png</normaloff>ico.png.png</iconset>
+    <normaloff>ico.png</normaloff>ico.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QWidget" name="horizontalLayoutWidget">
@@ -306,15 +306,6 @@
          </property>
         </widget>
        </widget>
-       <zorder>groupBox</zorder>
-       <zorder>groupBox_2</zorder>
-       <zorder>pushButton</zorder>
-       <zorder>CanonicalFormBox</zorder>
-       <zorder>groupBox_4</zorder>
-       <zorder>detectedInputBox</zorder>
-       <zorder>groupBox_3</zorder>
-       <zorder>frame_2</zorder>
-       <zorder>frame_2</zorder>
       </widget>
      </item>
      <item>
@@ -557,13 +548,6 @@ p, li { white-space: pre-wrap; }
          </property>
         </widget>
        </widget>
-       <zorder>groupBox_5</zorder>
-       <zorder>groupBox_6</zorder>
-       <zorder>groupBox_2</zorder>
-       <zorder>groupBox_7</zorder>
-       <zorder>groupBox_9</zorder>
-       <zorder>groupBox_10</zorder>
-       <zorder>groupBox_8</zorder>
       </widget>
      </item>
     </layout>
