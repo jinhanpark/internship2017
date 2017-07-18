@@ -1,5 +1,5 @@
 from nodes import *
-
+from copy import deepcopy
 
 def diff_meta(given, scope='x'):
     assert isinstance(given, MetaExpr)
@@ -8,7 +8,7 @@ def diff_meta(given, scope='x'):
 
 def diff_expr(given, scope):
     assert isinstance(given, Expr)
-    given = copy.deepcopy(given)
+    given = deepcopy(given)
     new = Expr(diff_term(given.term, scope),
                diff_extail(given.extail, scope))
     return new
@@ -37,7 +37,7 @@ def diff_term(given, scope):
                      ExTail('+', right_term))
         new = Term(Paren(total))
         result = new
-    result.coeff = given.coeff
+    result.coeff *= given.coeff
     return result
 
 
@@ -46,14 +46,16 @@ def diff_termtail(given, scope):
     left_term = Term(diff_factor(given.factor, scope),
                      given.termtail)
     if isinstance(given.termtail, Empty):
-        return left_term.tailized()
+        result = left_term.tailized()
     else:
         right_term = Term(given.factor,
                           diff_termtail(given.termtail, scope))
         total = Expr(left_term,
                      ExTail('+', right_term))
         new = TermTail('*', Paren(total))
-        return new
+        result =  new
+    result.coeff *= given.coeff
+    return result
 
 def diff_factor(given, scope):
     assert isinstance(given, Factor)
@@ -72,8 +74,6 @@ def diff_literal(given, scope):
         return Num(0.)
     elif isinstance(given, Var):
         if str(given) == scope:
-            return Num(1.)
-        elif str(given) == scope:
             return Num(1.)
         else:
             return Num(0.)
@@ -101,7 +101,7 @@ def diff_pow(given, scope):
        scope in str(given.exp):
         raise ValueError
     elif scope in str(given.base):
-        exp_part = Paren(copy.deepcopy(given.exp))
+        exp_part = Paren(deepcopy(given.exp))
         given.exp += num2expr(-1.)
         chain_part = Paren(diff_expr(given.base, scope))
         return Paren(Expr(Term(exp_part,

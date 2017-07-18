@@ -67,7 +67,7 @@ class Factor:
         coeff_str = ''
         #coeff_str = 'fact%f*'%self.coeff
         if self.exp != 1:
-            return '%spow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
+            return '%sfactor_pow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
         else:
             return '%s%s'%(coeff_str, str(self.base))
 
@@ -133,6 +133,13 @@ class Pow(Factor):
             else:
                 return self
  
+    def __str__(self):
+        coeff_str = ''
+        #coeff_str = 'fact%f*'%self.coeff
+        if self.exp != 1:
+            return '%spow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
+        else:
+            return '%s%s'%(coeff_str, str(self.base))
 
 class Literal(Factor):
     def __init__(self, value, coeff=1.):
@@ -188,7 +195,10 @@ class SinVarFunc(Factor):
 
     def simplified(self):
         self.base.simplify()
-        return Pow(factor2expr(self), num2expr(self.exp))
+        new_exp = num2expr(self.exp)
+        self.exp = num2expr(1)
+        new_base = factor2expr(self)
+        return Pow(new_base, new_exp)
 
     def __repr__(self):
         return str(self)

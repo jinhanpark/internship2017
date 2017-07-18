@@ -102,6 +102,8 @@ class MyWindow(QMainWindow, ui_imported):
         width = right_end - left_end
         if height > 10*width:
             mid = fx[int(len(fx)/2)]
+            if np.isnan(mid):
+                mid = np.mean(max_pt, min_pt)
             top = mid+3*width
             bottom = mid-3*width
         else:
@@ -139,6 +141,8 @@ class MyWindow(QMainWindow, ui_imported):
         width = right_end - left_end
         if height > 10*width:
             mid = fx[int(len(fx)/2)]
+            if np.isnan(mid):
+                mid = np.mean(max_pt, min_pt)
             top = mid+3*width
             bottom = mid-3*width
         else:
