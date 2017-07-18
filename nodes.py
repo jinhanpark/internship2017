@@ -178,7 +178,7 @@ class Num(Literal):
 
 class SinVarFunc(Factor):
     def __init__(self, expr, coeff=1.):
-        Factor.__init__(self, expr, coeff)
+        Factor.__init__(self, expr, coeff=coeff)
 
     def penetrate(self):
         self.base.simplify()

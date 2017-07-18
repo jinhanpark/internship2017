@@ -101,7 +101,7 @@ class MyWindow(QMainWindow, ui_imported):
         height = max_pt-min_pt
         width = right_end - left_end
         if height > 10*width:
-            mid = (max_pt+min_pt)/2
+            mid = fx[int(len(fx)/2)]
             top = mid+3*width
             bottom = mid-3*width
         else:
@@ -138,7 +138,7 @@ class MyWindow(QMainWindow, ui_imported):
         height = max_pt-min_pt
         width = right_end - left_end
         if height > 10*width:
-            mid = (max_pt+min_pt)/2
+            mid = fx[int(len(fx)/2)]
             top = mid+3*width
             bottom = mid-3*width
         else:
