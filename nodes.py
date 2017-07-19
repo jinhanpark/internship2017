@@ -4,6 +4,11 @@ from copy import deepcopy
 def is_num(x):
     return type(x) == int or type(x) == float
 
+def is_int_expr(expr):
+    check_Num = expr.is_single_factor(Num)
+    check_int = int(expr.term.coeff) == float(expr.term.coeff)
+    return check_int and check_Num
+
 def factor2expr(given):
     copied = deepcopy(given)
     new = Expr(Term(copied))
@@ -121,10 +126,11 @@ class Pow(Factor):
             before_factor = before_base.term.factor
             self.base.penetrate()
             inner_factor = self.base.term.factor
-            if isinstance(before_factor, Pow):
-                return Pow(before_factor.base, self.exp*before_factor.exp)
-            elif isinstance(inner_factor, Paren):
+            if isinstance(inner_factor, Paren):
                 return Pow(inner_factor.base, self.exp*inner_factor.exp)
+            # elif isinstance(before_factor, Pow) and\
+            #    (is_int_expr(self.exp) and is_int_expr(before_factor.exp)):
+            #     return Pow(before_factor.base, self.exp*before_factor.exp)
             elif isinstance(inner_factor, Num) and\
                  self.exp.is_single_factor(Num):
                 return Num(math.pow(self.base.term.coeff, self.exp.term.coeff))
