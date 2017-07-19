@@ -9,6 +9,9 @@ def is_int_expr(expr):
     check_int = int(expr.term.coeff) == float(expr.term.coeff)
     return check_int and check_Num
 
+def no_var_in_str(s):
+    return (not 'x' in s) and (not 'y' in s)
+
 def factor2expr(given):
     copied = deepcopy(given)
     new = Expr(Term(copied))
@@ -79,14 +82,34 @@ class Factor:
 
     def __lt__(self, another):
         assert isinstance(another, Factor)
-        return str(self.base) < str(another.base)
+        self_num, another_num = isinstance(self, Num), isinstance(another, Num)
+        if self_num and another_num:
+            return False
+        elif another_num:
+            return True
+        elif self_num:
+            return False
+        diff_base_check = str(self.base) < str(another.base)
+        if diff_base_check:
+            return True
+        exp_num_check = not self.exp.is_single_factor(Num) and another.exp.is_single_factor(Num)
+        if exp_num_check:
+            return True
+        exp_int_check = not is_int_expr(self.exp) and is_int_expr(another.exp)
+        if exp_int_check:
+            return True
+        whole_exp_compare = str(self.exp) < str(another.exp)
+        if whole_exp_compare:
+            return True
+        return False
 
     def __eq__(self, another):
         assert isinstance(another, Factor)
         return str(self.base) == str(another.base)
+        return str(self) == str(another)
 
     def __le__(self, another):
-        return self < another or self == another
+        return self<another or self == another
 
 class Pow(Factor):
     def __init__(self, base, exp, coeff=1.):
@@ -99,9 +122,17 @@ class Pow(Factor):
 
     def simplified(self):
         self.exp = self.exp.simplified()
+        while self.base.is_single_factor(Pow) and\
+              ((is_int_expr(self.exp) and is_int_expr(self.base.term.factor.exp)) or\
+               self.exp == 1 or self.base.term.factor.exp == 1):
+            self.exp = self.exp*self.base.term.factor.exp
+            self.base = self.base.term.factor.base
         if self.base.is_single_factor(Num) and\
            self.exp.is_single_factor(Num):
             return Num(math.pow(self.base.term.coeff, self.exp.term.coeff))
+        elif self.base.is_single_factor(Pow):
+            self.base = self.base.simplified()
+            return self
         elif isinstance(self.base.extail, ExTail):
             self.base = self.base.simplified()
             if self.base.term.coeff != 1:
@@ -128,9 +159,6 @@ class Pow(Factor):
             inner_factor = self.base.term.factor
             if isinstance(inner_factor, Paren):
                 return Pow(inner_factor.base, self.exp*inner_factor.exp)
-            # elif isinstance(before_factor, Pow) and\
-            #    (is_int_expr(self.exp) and is_int_expr(before_factor.exp)):
-            #     return Pow(before_factor.base, self.exp*before_factor.exp)
             elif isinstance(inner_factor, Num) and\
                  self.exp.is_single_factor(Num):
                 return Num(math.pow(self.base.term.coeff, self.exp.term.coeff))
@@ -221,6 +249,10 @@ class Paren(SinVarFunc): #regard Paren as identity function
         SinVarFunc.__init__(self, expr, coeff)
 
     def simplified(self):
+        while isinstance(self.base, Expr) and\
+              self.base.is_single_factor(Paren):
+            self.exp *= self.base.term.factor.exp
+            self.base = self.base.term.factor.base
         if self.base.is_single_factor():
             self.base.penetrate()
             new = deepcopy(self.base.term.factor)
@@ -367,8 +399,10 @@ class TermCommon:
             elif isinstance(self.factor, Paren):
                 pass
             elif self.factor == self.termtail.factor:
-                self.factor.exp += self.termtail.factor.exp
-                self.termtail = self.termtail.termtail
+                if (is_int_expr(self.factor.exp) and is_int_expr(self.termtail.factor.exp) and self.factor.exp.term.coeff * self.termtail.factor.exp.term.coeff > 0) or\
+                   no_var_in_str(str(self.factor.base)):
+                    self.factor.exp += self.termtail.factor.exp
+                    self.termtail = self.termtail.termtail
 
     def gather_pows_with_same_exp(self):
         traveler_before = self
