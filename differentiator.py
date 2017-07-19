@@ -9,15 +9,18 @@ def diff_meta(given, scope='x'):
 def diff_expr(given, scope):
     assert isinstance(given, Expr)
     given = deepcopy(given)
+
     new = Expr(diff_term(given.term, scope),
                diff_extail(given.extail, scope))
     return new
 
 def diff_extail(given, scope):
+    given = deepcopy(given)
+    
     if isinstance(given, Empty):
         return given
     elif isinstance(given, ExTail):
-        new = ExTail('*',
+        new = ExTail('+',
                      diff_term(given.term, scope),
                      diff_extail(given.extail, scope))
         return new
@@ -26,6 +29,8 @@ def diff_extail(given, scope):
 
 def diff_term(given, scope):
     assert isinstance(given, Term)
+    given = deepcopy(given)
+    
     left_term = Term(diff_factor(given.factor, scope),
                      given.termtail)
     if isinstance(given.termtail, Empty):
@@ -43,6 +48,8 @@ def diff_term(given, scope):
 
 def diff_termtail(given, scope):
     assert isinstance(given, TermTail)
+    given = deepcopy(given)
+    
     left_term = Term(diff_factor(given.factor, scope),
                      given.termtail)
     if isinstance(given.termtail, Empty):
@@ -59,6 +66,8 @@ def diff_termtail(given, scope):
 
 def diff_factor(given, scope):
     assert isinstance(given, Factor)
+    given = deepcopy(given)
+    
     if isinstance(given, Literal):
         return diff_literal(given, scope)
     elif isinstance(given, SinVarFunc):
@@ -69,6 +78,8 @@ def diff_factor(given, scope):
         raise ValueError
 
 def diff_literal(given, scope):
+    given = deepcopy(given)
+    
     if isinstance(given, Num) or\
        isinstance(given, Const):
         return Num(0.)
@@ -80,6 +91,8 @@ def diff_literal(given, scope):
 
 def diff_func(given, scope):
     assert given.exp == 1
+    given = deepcopy(given)
+    
     func = given.func_name
     chain_part = diff_expr(given.base, scope)
 
@@ -97,6 +110,8 @@ def diff_func(given, scope):
                            TermTail('*', Paren(chain_part)))))
 
 def diff_pow(given, scope):
+    given = deepcopy(given)
+    
     if scope in str(given.base) and\
        scope in str(given.exp):
         raise ValueError

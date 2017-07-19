@@ -65,7 +65,7 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>411</width>
+          <width>361</width>
           <height>61</height>
          </rect>
         </property>
@@ -77,7 +77,7 @@
           <rect>
            <x>10</x>
            <y>20</y>
-           <width>391</width>
+           <width>341</width>
            <height>31</height>
           </rect>
          </property>
@@ -131,10 +131,10 @@
        <widget class="QPushButton" name="pushButton">
         <property name="geometry">
          <rect>
-          <x>420</x>
-          <y>90</y>
-          <width>61</width>
-          <height>41</height>
+          <x>370</x>
+          <y>10</y>
+          <width>41</width>
+          <height>51</height>
          </rect>
         </property>
         <property name="text">
@@ -239,7 +239,7 @@
          </rect>
         </property>
         <property name="title">
-         <string>range</string>
+         <string>Domain</string>
         </property>
         <widget class="QLabel" name="label_2">
          <property name="geometry">
@@ -254,44 +254,6 @@
           <string>to:</string>
          </property>
         </widget>
-        <widget class="QSpinBox" name="funcFrom">
-         <property name="geometry">
-          <rect>
-           <x>40</x>
-           <y>60</y>
-           <width>42</width>
-           <height>22</height>
-          </rect>
-         </property>
-         <property name="minimum">
-          <number>-100</number>
-         </property>
-         <property name="maximum">
-          <number>100</number>
-         </property>
-         <property name="value">
-          <number>-3</number>
-         </property>
-        </widget>
-        <widget class="QSpinBox" name="funcTo">
-         <property name="geometry">
-          <rect>
-           <x>40</x>
-           <y>20</y>
-           <width>42</width>
-           <height>22</height>
-          </rect>
-         </property>
-         <property name="minimum">
-          <number>-100</number>
-         </property>
-         <property name="maximum">
-          <number>100</number>
-         </property>
-         <property name="value">
-          <number>3</number>
-         </property>
-        </widget>
         <widget class="QLabel" name="label">
          <property name="geometry">
           <rect>
@@ -303,6 +265,58 @@
          </property>
          <property name="text">
           <string>from:</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="funcTo">
+         <property name="geometry">
+          <rect>
+           <x>40</x>
+           <y>20</y>
+           <width>41</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>4</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="funcFrom">
+         <property name="geometry">
+          <rect>
+           <x>40</x>
+           <y>60</y>
+           <width>41</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>-4</string>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QGroupBox" name="groupBox_11">
+        <property name="geometry">
+         <rect>
+          <x>420</x>
+          <y>80</y>
+          <width>61</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Stepsize</string>
+        </property>
+        <widget class="QLineEdit" name="stepSize">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>20</y>
+           <width>41</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>0.02</string>
          </property>
         </widget>
        </widget>
@@ -481,7 +495,7 @@ p, li { white-space: pre-wrap; }
          </rect>
         </property>
         <property name="title">
-         <string>range</string>
+         <string>Domain</string>
         </property>
         <widget class="QLabel" name="label_4">
          <property name="geometry">
@@ -496,44 +510,6 @@ p, li { white-space: pre-wrap; }
           <string>to:</string>
          </property>
         </widget>
-        <widget class="QSpinBox" name="deriFrom">
-         <property name="geometry">
-          <rect>
-           <x>40</x>
-           <y>60</y>
-           <width>42</width>
-           <height>22</height>
-          </rect>
-         </property>
-         <property name="minimum">
-          <number>-100</number>
-         </property>
-         <property name="maximum">
-          <number>100</number>
-         </property>
-         <property name="value">
-          <number>-3</number>
-         </property>
-        </widget>
-        <widget class="QSpinBox" name="deriTo">
-         <property name="geometry">
-          <rect>
-           <x>40</x>
-           <y>20</y>
-           <width>42</width>
-           <height>22</height>
-          </rect>
-         </property>
-         <property name="minimum">
-          <number>-100</number>
-         </property>
-         <property name="maximum">
-          <number>100</number>
-         </property>
-         <property name="value">
-          <number>3</number>
-         </property>
-        </widget>
         <widget class="QLabel" name="label_3">
          <property name="geometry">
           <rect>
@@ -545,6 +521,32 @@ p, li { white-space: pre-wrap; }
          </property>
          <property name="text">
           <string>from:</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="deriFrom">
+         <property name="geometry">
+          <rect>
+           <x>40</x>
+           <y>60</y>
+           <width>41</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>-4</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="deriTo">
+         <property name="geometry">
+          <rect>
+           <x>40</x>
+           <y>20</y>
+           <width>41</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>4</string>
          </property>
         </widget>
        </widget>

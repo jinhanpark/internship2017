@@ -1,7 +1,7 @@
 import unittest
 from my_tokenizer import Tokens
 from tree_generator import *
-from evaluator import eval_meta
+from evaluator import eval_meta, is_continuous, is_differentiable
 from differentiator import diff_meta
 
 
@@ -111,24 +111,49 @@ class TestSimplification(unittest.TestCase):
 
 class TestEvaluation(unittest.TestCase):
 
-    def test_numbers(self):
-        lst = (('2', 2),
+    def test_eval_meta(self):
+        lst = (('2', 0, 2),
+               ('x+2', 2, 4),
+               ('pow(x, 3)', 3, 27),
+               ('log(x)', 'e', 1),
+               ('cos(x)', 'pi/2', 0),
         )
         for pair in lst:
-            self.assertEqual(eval_meta(get_meta_expr(pair[0])), pair[1])
+            self.assertEqual(eval_meta(get_meta_expr(pair[0]), pair[1]), pair[2])
+
+    def test_continuity_check(self):
+        lst = (('1/sin(x)', '-5*pi', False),
+               ('1/x', 0, False)
+        )
+        for pair in lst:
+            self.assertEqual(is_continuous(get_meta_expr(pair[0]), pair[1]), pair[2])
+
+    def test_differentiability_check(self):
+        lst = (('1/sin(x)', '-5*pi', False),
+               ('1/x', 0, False)
+        )
+        for pair in lst:
+            self.assertEqual(is_continuous(get_meta_expr(pair[0]), pair[1]), pair[2])
 
 
 class TestDifferentiation(unittest.TestCase):
 
     def test_numbers(self):
         lst = (('2', '0'),
+               ('3*4', '0'),
+               ('0*3 +4', '0')
         )
         for pair in lst:
             self.assertEqual(diff_meta(get_meta_expr(pair[0])), get_meta_expr(pair[1]))
 
-    def test_trigonometric(self):
+    def test_func(self):
         lst = (('sin(x)', 'cos(x)'),
                ('cos(x)', '-sin(x)'),
+               ('log(x)', '1/x'),
+               ('1/sin(x)', '-cos(x)/sin(x)/sin(x)'),
+               ('pow(e, x)', 'pow(e, x)'),
+               ('pow(2, x)', '0.693147*pow(2, x)'),
+               ('log(sin(x))', 'pow(tan(x), -1)')
         )
         for pair in lst:
             self.assertEqual(diff_meta(get_meta_expr(pair[0])), get_meta_expr(pair[1]))

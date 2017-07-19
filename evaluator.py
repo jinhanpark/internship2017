@@ -1,6 +1,15 @@
 from nodes import *
+from differentiator import diff_meta
 from tree_generator import get_meta_expr
 import re
+import numpy as np
+
+def is_continuous(meta, x='0'):
+    return not np.isnan(eval_meta(meta, x))
+
+def is_differentiable(meta, x='0'):
+    return (not np.isnan(eval_meta(diff_meta(meta), x)) and\
+            is_continuous(meta, x))
 
 def replace_with(meta, x='None', y='None'):
     if y != 'None':
@@ -22,22 +31,29 @@ def replace_with(meta, x='None', y='None'):
     else:
         return meta
 
-def eval_meta(meta, x=None, y=None):
+def eval_meta(meta, x=None, y=None, with_pi=False):
     assert isinstance(meta, MetaExpr)
-    if is_num(x):
+    try:
         x = '%f'%x
-    else:
+    except:
         x = str(x)
-    if is_num(y):
+    try:
         y = '%f'%y
-    else:
+    except:
         y = str(y)
-    new = replace_with(meta, x, y)
-    return round(eval_expr(new.expr), 10)
+    try:
+        if with_pi:
+            x = x+'*pi'
+            y = y+'*pi'
+        new = replace_with(meta, x, y)
+        result = eval_expr(new.expr, round_bound=5)
+        return result
+    except:
+        return np.nan
 
-def eval_expr(given, x='0', y='0'):
+def eval_expr(given, round_bound=10):
     assert isinstance(given, Expr)
-    return eval_term(given.term) + eval_extail(given.extail)
+    return round(eval_term(given.term) + eval_extail(given.extail), round_bound)
 
 def eval_extail(given):
     if isinstance(given, ExTail):
@@ -89,21 +105,22 @@ def eval_const(given):
 def eval_func(given):
     assert given.exp == 1
     func = given.func_name
-    base = eval_expr(given.base)
+    base = eval_expr(given.base, round_bound=10)
     if func == '':
-        return base
+        result = base
     elif func == 'sin':
-        return math.sin(base)
+        result = math.sin(base)
     elif func == 'cos':
-        return math.cos(base)
+        result = math.cos(base)
     elif func == 'tan':
-        return math.tan(base)
+        result = math.tan(base)
     elif func == 'log':
-        return math.log(base)
+        result = math.log(base)
     else:
         raise ValueError
+    return round(result, 5)
 
 def eval_pow(given):
     base = eval_expr(given.base)
     exp = eval_expr(given.exp)
-    return math.pow(base, exp)
+    return round(math.pow(base, exp), 10)

@@ -1,11 +1,11 @@
 import math
-import copy
+from copy import deepcopy
 
 def is_num(x):
     return type(x) == int or type(x) == float
 
 def factor2expr(given):
-    copied = copy.deepcopy(given)
+    copied = deepcopy(given)
     new = Expr(Term(copied))
     return new
 
@@ -14,7 +14,7 @@ def num2expr(given):
         assert given.is_single_factor(Num)
         return given
     else:
-        copied = copy.deepcopy(given)
+        copied = deepcopy(given)
         new = Expr(Term(Num(copied)))
         return new
 
@@ -52,7 +52,7 @@ class Factor:
             self.exp = num2expr(exp)
 
     def reciprocal(self):
-        new = copy.deepcopy(self)
+        new = deepcopy(self)
         new.coeff = math.pow(self.coeff, -1)
         if is_num(self.exp):
             new.exp = num2expr(-self.exp)
@@ -66,10 +66,11 @@ class Factor:
     def __str__(self):
         coeff_str = ''
         #coeff_str = 'fact%f*'%self.coeff
-        if self.exp != 1:
-            return '%sfactor_pow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
-        else:
-            return '%s%s'%(coeff_str, str(self.base))
+        #return '%sfactor_pow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
+        # if self.exp != 1:
+        #     return '%sfactor_pow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
+        # else:
+        #     return '%s%s'%(coeff_str, str(self.base))
 
     def __lt__(self, another):
         assert isinstance(another, Factor)
@@ -112,11 +113,11 @@ class Pow(Factor):
             else:
                 return self
         elif isinstance(self.base.term.termtail, TermTail) or\
-             self.base.term.coeff != 1:
+             (self.base.term.coeff != 1 and not self.base.is_single_factor(Num)):
             self.base.term.power_by(self.exp)
             return Paren(self.base.simplified())
         else:
-            before_base = copy.deepcopy(self.base)
+            before_base = deepcopy(self.base)
             before_factor = before_base.term.factor
             self.base.penetrate()
             inner_factor = self.base.term.factor
@@ -130,16 +131,16 @@ class Pow(Factor):
             elif isinstance(inner_factor, Log) and\
                  str(inner_factor.base.term.factor.base) == 'e':
                 return Pow(inner_factor.base.term.factor.exp, self.exp)
+            elif isinstance(inner_factor, Tan):
+                self.base = self.base.simplified()
+                return self
             else:
                 return self
  
     def __str__(self):
         coeff_str = ''
         #coeff_str = 'fact%f*'%self.coeff
-        if self.exp != 1:
-            return '%spow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
-        else:
-            return '%s%s'%(coeff_str, str(self.base))
+        return '%spow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
 
 class Literal(Factor):
     def __init__(self, value, coeff=1.):
@@ -179,7 +180,7 @@ class Num(Literal):
         return self
 
     def reciprocal(self):
-        new = copy.deepcopy(self)
+        new = deepcopy(self)
         new.coeff = math.pow(self.coeff, -1)
         return new
 
@@ -216,7 +217,7 @@ class Paren(SinVarFunc): #regard Paren as identity function
     def simplified(self):
         if self.base.is_single_factor():
             self.base.penetrate()
-            new = copy.deepcopy(self.base.term.factor)
+            new = deepcopy(self.base.term.factor)
             new.coeff *= self.base.term.coeff
             new.exp = self.exp * new.exp
             return new
@@ -474,7 +475,7 @@ class Term(TermCommon):
             isinstance(another, float) or\
             isinstance(another, int)
 
-        new = copy.deepcopy(self)
+        new = deepcopy(self)
         if isinstance(another, Factor):
             return Term(another) * new
         elif isinstance(another, Term):
@@ -487,7 +488,7 @@ class Term(TermCommon):
             return new
 
     def __neg__(self):
-        new = copy.deepcopy(self)
+        new = deepcopy(self)
         new.coeff *= -1
         return new
 
@@ -555,19 +556,22 @@ class ExprCommon:
             self.extail = expr.extail
 
     def order_and_gather_terms(self): #idea from bubble sort
-        if isinstance(self.extail, ExTail):
+        if self.term.coeff == 0:
+            self.term = Term(Num(0))
+        elif isinstance(self.extail, ExTail):
             self.extail.order_and_gather_terms()
             if self.term < self.extail.term:
                 self.term, self.extail.term = self.extail.term, self.term
             elif self.term == self.extail.term:
                 self.term.coeff += self.extail.term.coeff
                 self.extail = self.extail.extail
-                if self.term.coeff == 0:
-                    self.term = Term(Num(0))
 
     def remove_zero_term(self):
         if isinstance(self.extail, ExTail):
-            if self.extail.term.coeff == 0:
+            if self.term.coeff == 0:
+                self.term = self.extail.term
+                self.extail = self.extail.extail
+            elif self.extail.term.coeff == 0:
                 self.extail = self.extail.extail
 
     def add_extail(self, given_extail):
@@ -581,7 +585,7 @@ class ExprCommon:
 
     def monic(self, div_factor=1.):
         if isinstance(self, Expr):
-            new = copy.deepcopy(self)
+            new = deepcopy(self)
             div_factor = self.term.coeff
         else:
             new = self
@@ -619,7 +623,7 @@ class ExprCommon:
         return str(self) == another_str
 
     def __neg__(self):
-        new = copy.deepcopy(self)
+        new = deepcopy(self)
         new.term = -new.term
         if isinstance(new.extail, ExTail):
             new.extail = -new.extail
@@ -627,7 +631,7 @@ class ExprCommon:
 
     def __add__(self, another):
         assert isinstance(another, Expr)
-        new = copy.deepcopy(self)
+        new = deepcopy(self)
         new.add_extail(another.tailized())
         new.simplify()
         return new
@@ -640,7 +644,7 @@ class ExprCommon:
             isinstance(another, int)
         
         if isinstance(self, Expr):
-            new = copy.deepcopy(self)
+            new = deepcopy(self)
         else:
             new = self
 
@@ -665,7 +669,7 @@ class Expr(ExprCommon):
         self.term.factor.penetrate()
 
     def simplified(self):
-        new = copy.deepcopy(self)
+        new = deepcopy(self)
         return MetaExpr(new).expr
 
     def is_single_factor(self, instance = Factor):
