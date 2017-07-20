@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from copy import deepcopy
 
 def is_num(x):
@@ -25,14 +26,6 @@ def num2expr(given):
         copied = deepcopy(given)
         new = Expr(Term(Num(copied)))
         return new
-
-# def expr2paren(given):
-#     temp = Expr(Term(Paren(given)))
-#     return temp
-
-# def multiply_factors2expr(given1, given2):
-#     temp = Expr(Term(given1, TermTail('*', Term(given2))))
-#     return temp
 
 class Empty:
     def __init__(self):
@@ -83,25 +76,33 @@ class Factor:
     def __lt__(self, another):
         assert isinstance(another, Factor)
         self_num, another_num = isinstance(self, Num), isinstance(another, Num)
-        if self_num and another_num:
+        if not self_num and another_num:
+            return True
+        elif self_num and not another_num:
             return False
-        elif another_num:
-            return True
-        elif self_num:
+        elif self_num and another_num:
             return False
-        diff_base_check = str(self.base) < str(another.base)
-        if diff_base_check:
-            return True
-        exp_num_check = not self.exp.is_single_factor(Num) and another.exp.is_single_factor(Num)
-        if exp_num_check:
-            return True
-        exp_int_check = not is_int_expr(self.exp) and is_int_expr(another.exp)
-        if exp_int_check:
-            return True
-        whole_exp_compare = str(self.exp) < str(another.exp)
-        if whole_exp_compare:
-            return True
-        return False
+        else: # both not num
+            if str(self.base) < str(another.base):
+                return True
+            elif str(self.base) > str(another.base):
+                return False
+            else: #same base
+                self_exp_num, another_exp_num = self.exp.is_single_factor(Num), another.exp.is_single_factor(Num)
+                if not self_exp_num and another_exp_num:
+                    return True
+                elif self_exp_num and not another_exp_num:
+                    return False
+                elif self_exp_num and another_exp_num:
+                    self_exp_int, another_exp_int = is_int_expr(self.exp), is_int_expr(another.exp)
+                    if not self_exp_int and another_exp_int:
+                        return True
+                    elif self_exp_int and not another_exp_int:
+                        return False
+                    else:
+                        return self.exp.term.coeff < another.exp.term.coeff
+                else:
+                    return str(self.exp) < str(another.exp)
 
     def __eq__(self, another):
         assert isinstance(another, Factor)
@@ -123,14 +124,16 @@ class Pow(Factor):
     def simplified(self):
         self.exp = self.exp.simplified()
         while self.base.is_single_factor(Pow) and\
+              self.base.term.coeff == 1 and\
               ((is_int_expr(self.exp) and is_int_expr(self.base.term.factor.exp)) or\
                self.exp == 1 or self.base.term.factor.exp == 1):
             self.exp = self.exp*self.base.term.factor.exp
             self.base = self.base.term.factor.base
         if self.base.is_single_factor(Num) and\
            self.exp.is_single_factor(Num):
-            return Num(math.pow(self.base.term.coeff, self.exp.term.coeff))
-        elif self.base.is_single_factor(Pow):
+            return Num(pow(self.base.term.coeff, self.exp.term.coeff))
+        elif self.base.is_single_factor(Pow) and\
+             self.base.term.coeff == 1:
             self.base = self.base.simplified()
             return self
         elif isinstance(self.base.extail, ExTail):
@@ -251,6 +254,7 @@ class Paren(SinVarFunc): #regard Paren as identity function
     def simplified(self):
         while isinstance(self.base, Expr) and\
               self.base.is_single_factor(Paren):
+            self.coeff *= self.base.term.coeff
             self.exp *= self.base.term.factor.exp
             self.base = self.base.term.factor.base
         if self.base.is_single_factor():
@@ -514,8 +518,9 @@ class Term(TermCommon):
             isinstance(another, Expr) or\
             isinstance(another, float) or\
             isinstance(another, int)
-
         new = deepcopy(self)
+        another = deepcopy(another)
+        
         if isinstance(another, Factor):
             return Term(another) * new
         elif isinstance(another, Term):
@@ -672,6 +677,7 @@ class ExprCommon:
     def __add__(self, another):
         assert isinstance(another, Expr)
         new = deepcopy(self)
+        another = deepcopy(another)
         new.add_extail(another.tailized())
         new.simplify()
         return new
@@ -687,6 +693,7 @@ class ExprCommon:
             new = deepcopy(self)
         else:
             new = self
+        another = deepcopy(another)
 
         if isinstance(another, Factor):
             new.term *= another

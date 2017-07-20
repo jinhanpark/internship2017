@@ -21,7 +21,7 @@ class TestSimplification(unittest.TestCase):
                ('2*x', '2*pow(x, 1)'),
                ('x*3', '3*pow(x, 1)'),
                ('1/x', 'pow(x, -1)'),
-               ('x*y/x', 'pow(y, 1)'),
+               ('x*y/x', 'pow(x, 1)*pow(x, -1)*pow(y, 1)'),
                ('x*x', 'pow(x, 2)'),
                ('pow(x, 3)', 'pow(x, 3)'),
               )
@@ -42,9 +42,10 @@ class TestSimplification(unittest.TestCase):
     def test_pow(self):
         lst = (('1/x', 'pow(x, -1)'),
                ('-1/-x', '1/x'),
+               ('1/(2*x)', '0.5/x'),
                ('2/(2*x)', '1/x'),
                ('1.5/(1.5*x)', '1/x'),
-               ('x/(x*y)', '1/y'),
+               ('x/(x*y)', '1/x/y*x'),
                ('pow(pow(x, 1), 1)', 'pow(x, 1)'),
                ('pow(pow(x, 2), 3)', 'pow(x, 6)'),
                ('1/pow(x, 1)', 'pow(x, -1)'),
@@ -87,7 +88,7 @@ class TestSimplification(unittest.TestCase):
                ('pow(sin(x), -1)', 'pow(sin(pow(x, 1)), -1)'),
                ('1/pow(sin(x), 1)', 'pow(sin(pow(x, 1)), -1)'),
                ('cos(x)*tan(x)', 'sin(x)*cos(x)/cos(x)'),
-               ('sin(x)/tan(x)', 'cos(x)'),
+               ('sin(x)/tan(x)', 'cos(x)/sin(x)*sin(x)'),
                ('-sin(x)', '-pow(sin(x), 1)')
         )
         for pair in lst:
@@ -136,7 +137,7 @@ class TestEvaluation(unittest.TestCase):
                ('x + x*pow(pow(x, 2), -0.5)', 0, False),
         )
         for pair in lst:
-            self.assertEqual(is_continuous(get_meta_expr(pair[0]), pair[1]), pair[2])
+            self.assertEqual(is_differentiable(get_meta_expr(pair[0]), pair[1]), pair[2])
 
 
 class TestDifferentiation(unittest.TestCase):
@@ -144,7 +145,7 @@ class TestDifferentiation(unittest.TestCase):
     def test_numbers(self):
         lst = (('2', '0'),
                ('3*4', '0'),
-               ('0*3 +4', '0')
+               ('0*3 +4', '0'),
         )
         for pair in lst:
             self.assertEqual(diff_meta(get_meta_expr(pair[0])), get_meta_expr(pair[1]))
@@ -156,7 +157,8 @@ class TestDifferentiation(unittest.TestCase):
                ('1/sin(x)', '-cos(x)/sin(x)/sin(x)'),
                ('pow(e, x)', 'pow(e, x)'),
                ('pow(2, x)', '0.693147*pow(2, x)'),
-               ('log(sin(x))', 'pow(tan(x), -1)')
+               ('log(sin(x))', 'pow(tan(x), -1)'),
+               ('log(y)', '0'),
         )
         for pair in lst:
             self.assertEqual(diff_meta(get_meta_expr(pair[0])), get_meta_expr(pair[1]))

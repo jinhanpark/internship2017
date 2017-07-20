@@ -20,15 +20,15 @@ class MyWindow(QMainWindow, ui_imported):
 
     def setupUi_more(self):
         #pushButton
-        self.pushButton.clicked.connect(self.btn_clicked)
+        self.pushButton.clicked.connect(self.run_all)
 
         #Input
         self.lineEdit.textChanged.connect(self.line_edit_changed)
-        self.lineEdit.returnPressed.connect(self.btn_clicked)
-        self.deriFrom.returnPressed.connect(self.btn_clicked)
-        self.deriTo.returnPressed.connect(self.btn_clicked)
-        self.funcFrom.returnPressed.connect(self.btn_clicked)
-        self.funcTo.returnPressed.connect(self.btn_clicked)
+        self.lineEdit.returnPressed.connect(self.run_all)
+        self.deriFrom.returnPressed.connect(self.run_all)
+        self.deriTo.returnPressed.connect(self.run_all)
+        self.funcFrom.returnPressed.connect(self.run_all)
+        self.funcTo.returnPressed.connect(self.run_all)
 
         #diff scope
         self.scope = 'x'
@@ -47,9 +47,11 @@ class MyWindow(QMainWindow, ui_imported):
 
         #stepsize
         self.step_size = float(self.stepSize.text())
+        self.stepSize.textChanged.connect(self.step_size_changed)
+        self.stepSize.returnPressed.connect(self.run_all)
 
         
-    def btn_clicked(self):
+    def run_all(self):
         try:
             #canonicalize
             self.statusbar.showMessage("Calculating canonical form...")
@@ -70,7 +72,6 @@ class MyWindow(QMainWindow, ui_imported):
             self.plot_derivative(deri)
 
             self.statusbar.showMessage("Done.")
-        
         except:
             self.statusbar.showMessage("An Error Occured.")
             QMessageBox.about(self, "Error Message", "An Error Occured.")
@@ -80,6 +81,15 @@ class MyWindow(QMainWindow, ui_imported):
         self.detectedInput.setText(self.lineEdit.text())
         self.statusbar.showMessage("Input has changed.")
 
+    def step_size_changed(self):
+        try:
+            step_size = float(self.stepSize.text())
+            assert step_size >= 0.005
+            self.step_size = step_size
+            self.statusbar.showMessage("Stepsize changed. : %f"%self.step_size)
+        except:
+            self.statusbar.showMessage("(Error) step size: %f"%self.step_size)
+
     def scope_change(self):
         if self.dxButton.isChecked():
             self.scope = 'x'
@@ -87,34 +97,7 @@ class MyWindow(QMainWindow, ui_imported):
             self.scope = 'y'
         self.statusbar.showMessage("Differentiation scope has changed.")
 
-    def rescale_and_truncate(self, fx, width):
-        max_pt = np.nanmax(fx)
-        min_pt = np.nanmin(fx)
-        height = max_pt - min_pt
-
-        if height > 6*width:
-            mid = fx[int(len(fx)/2)]
-            if np.isnan(mid):
-                mid = (max_pt + min_pt)/2
-            top = mid + 1*width
-            bottom = mid - 1*width
-        else:
-            top = max_pt
-            bottom = min_pt
-
-        height = top-bottom
-
-        if np.isnan(fx).any():
-            gap = 0
-        else:
-            gap = 0.5
-        
-        top += gap
-        bottom -= gap
-
-        return bottom, top
-
-    def plot_graph(self, graph, xs, fx, left_end, right_end, bottom, top, xlabel='x', title='f(x, 0)'):
+    def plot_graph(self, graph, xs, fx, xlabel='x', title='f(x, 0)'):
         graph.clear()
         graph.plot(xs, fx)
         graph.set_xlabel(xlabel)
@@ -133,9 +116,7 @@ class MyWindow(QMainWindow, ui_imported):
         fx = np.array([eval_meta(meta, x, 0, with_pi=True) for x in xs])
         xs *= np.pi
 
-        bottom, top = self.rescale_and_truncate(fx, width)
-
-        self.plot_graph(graph, xs, fx, left_end, right_end, bottom, top)
+        self.plot_graph(graph, xs, fx)
 
         self.funcCanvas.draw()
 
@@ -151,7 +132,6 @@ class MyWindow(QMainWindow, ui_imported):
         else:
             fx = np.array([eval_meta(deri, 0, x, with_pi=True) for x in xs])
         xs *= np.pi
-        bottom, top = self.rescale_and_truncate(fx, width)
 
         if self.scope == 'x':
             x_label = 'x'
@@ -160,7 +140,7 @@ class MyWindow(QMainWindow, ui_imported):
             x_label = 'y'
             title = "(d/dy)f(0, y)"
         
-        self.plot_graph(graph, xs, fx, left_end, right_end, bottom, top, x_label, title)
+        self.plot_graph(graph, xs, fx, x_label, title)
 
         # graph.clear()
         # graph.plot(xs, fx)
