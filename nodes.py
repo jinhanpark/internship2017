@@ -64,15 +64,6 @@ class Factor:
     def __repr__(self):
         return str(self)
 
-    def __str__(self):
-        coeff_str = ''
-        #coeff_str = 'fact%f*'%self.coeff
-        #return '%sfactor_pow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
-        # if self.exp != 1:
-        #     return '%sfactor_pow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
-        # else:
-        #     return '%s%s'%(coeff_str, str(self.base))
-
     def __lt__(self, another):
         assert isinstance(another, Factor)
         self_num, another_num = isinstance(self, Num), isinstance(another, Num)
@@ -175,9 +166,7 @@ class Pow(Factor):
                 return self
  
     def __str__(self):
-        coeff_str = ''
-        #coeff_str = 'fact%f*'%self.coeff
-        return '%spow(%s, %s)'%(coeff_str, str(self.base), str(self.exp))
+        return 'pow(%s, %s)'%(str(self.base), str(self.exp))
 
 class Literal(Factor):
     def __init__(self, value, coeff=1.):
@@ -193,9 +182,7 @@ class Literal(Factor):
         return str(self)
 
     def __str__(self):
-        coeff_str = ''
-#        coeff_str = 'literal%f*'%self.coeff
-        return '%s%s'%(coeff_str, str(self.base))
+        return str(self.base)
 
 class Var(Literal):
     def __init__(self, var, coeff=1.):
@@ -221,9 +208,6 @@ class Num(Literal):
         new.coeff = math.pow(self.coeff, -1)
         return new
 
-    # def __str__(self):
-    #     return '%f'%self.base
-
 class SinVarFunc(Factor):
     def __init__(self, expr, coeff=1.):
         Factor.__init__(self, expr, coeff=coeff)
@@ -242,9 +226,7 @@ class SinVarFunc(Factor):
         return str(self)
 
     def __str__(self):
-        coeff_str = ''
-#        coeff_str = 'fact%f*'%self.coeff
-        return '%s%s(%s)'%(coeff_str, self.func_name, str(self.base))
+        return '%s(%s)'%(self.func_name, str(self.base))
 
 class Paren(SinVarFunc): #regard Paren as identity function
     def __init__(self, expr, coeff=1.):
@@ -502,15 +484,7 @@ class Term(TermCommon):
             op_str = ''
         factor_str = str(self.factor)
         termtail_str = str(self.termtail)
-        coeff_str = ''
-        # coeff = self.coeff #for debug
-        # if coeff == 1:
-        #     coeff_str = ''
-        # elif coeff == -1:
-        #     coeff_str = '-'
-        # else:
-        #     coeff_str = 'term%f*'%coeff #end for debug
-        return '%s%s%s%s'%(op_str, coeff_str, factor_str, termtail_str)
+        return '%s%s%s'%(op_str, factor_str, termtail_str)
 
     def __mul__(self, another):
         assert isinstance(another, Factor) or\
@@ -567,14 +541,14 @@ class ExprCommon:
         self.remove_minus_op()
 
     def simplify(self):
-        #before recursion : left to right propagation
+        #before recursion : left to right
         self.simplify_term()
         self.unparenize_expr()
 
         #recursion step
         self.extail.simplify()
         
-        #after recursion : right to left propagation
+        #after recursion : right to left
         self.order_and_gather_terms()
         self.remove_zero_term()
 
@@ -712,7 +686,7 @@ class Expr(ExprCommon):
     def __init__(self, term, extail=Empty()):
         ExprCommon.__init__(self, term, extail)
 
-    def penetrate(self):#have to deal with this
+    def penetrate(self):
         self.term.factor.penetrate()
 
     def simplified(self):

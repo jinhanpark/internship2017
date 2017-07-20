@@ -11,26 +11,6 @@ def is_differentiable(meta, x='0'):
     return (not np.isnan(eval_meta(diff_meta(meta), x)) and\
             is_continuous(meta, x))
 
-# def replace_with(meta, x='None', y='None'):
-#     if y != 'None':
-#         assert x != 'None'
-#         x = '(%s)'%str(get_meta_expr(x))
-#         y = '(%s)'%str(get_meta_expr(y))
-#         expr_str = str(meta)
-#         expr_str = re.sub(r'y', 'save_for_y', expr_str)
-#         expr_str = re.sub(r'x', x, expr_str)
-#         expr_str = re.sub(r'save_for_y', y, expr_str)
-#         new = get_meta_expr(expr_str)
-#         return new
-#     if x != 'None':
-#         x = '(%s)'%str(get_meta_expr(x))
-#         expr_str = str(meta)
-#         expr_str = re.sub(r'x', x, expr_str)
-#         new = get_meta_expr(expr_str)
-#         return new
-#     else:
-#         return meta
-
 def eval_meta(meta, x=0, y=0, with_pi=False):
     assert isinstance(meta, MetaExpr)
     try:
@@ -53,8 +33,6 @@ def eval_meta(meta, x=0, y=0, with_pi=False):
             y = get_meta_expr(y)
         else:
             y = get_meta_expr('0')
-#        new = replace_with(meta, x, y)
-#        result = eval_expr(new.expr, x, y, round_bound=5)
         result = eval_expr(meta.expr, x, y, round_bound=5)
         return result
     except:

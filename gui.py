@@ -141,19 +141,7 @@ class MyWindow(QMainWindow, ui_imported):
             title = "(d/dy)f(0, y)"
         
         self.plot_graph(graph, xs, fx, x_label, title)
-
-        # graph.clear()
-        # graph.plot(xs, fx)
-        # if self.scope == 'x':
-        #     graph.set_xlabel('x')
-        #     graph.set_title("(d/dx)f(x, 0)")
-        # else:
-        #     graph.set_xlabel('y')
-        #     graph.set_title("(d/dy)f(0, y)")
-
-        # graph.set_xlim([left_end, right_end])
-        # graph.set_ylim([bottom, top])
-
+        
         self.deriCanvas.draw()
 
 
