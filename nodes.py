@@ -27,11 +27,26 @@ def num2expr(given):
         new = Expr(Term(Num(copied)))
         return new
 
+
 class Empty:
     def __init__(self):
+        self.term = ''
+#        self.extail = self
         pass
 
-    def simplify(self):
+    def simplify(self): # may be no need
+        pass
+
+    def child_simplify(self):
+        pass
+
+    def unparenize(self):
+        pass
+
+    def sort(self):
+        pass
+
+    def gather(self):
         pass
 
     def __repr__(self):
@@ -516,7 +531,7 @@ class Term(TermCommon):
         return str(self) < str(another)
 
     def __eq__(self, another):
-        assert isinstance(another, Term)
+        assert isinstance(another, Term) or another == ''
         return str(self) == str(another)
 
     def __le__(self, another):
@@ -536,26 +551,44 @@ class TermTail(TermCommon):
 
 class ExprCommon:
     def __init__(self, term, extail=Empty()):
+        assert isinstance(term, Term)
+        self.adopt_term(term)
+        self.adopt_extail(extail)
+
+    def adopt_term(self, term):
         self.term = term
+        term.parent = self
+        return self
+
+    def adopt_extail(self, extail):
         self.extail = extail
-        self.remove_minus_op()
+        extail.parent = self
+        return self
 
-    def simplify(self):
-        #before recursion : left to right
+    def copy(self, expr):
+        assert isinstance(expr, ExprCommon)
+        self.adopt_term(expr.term)
+        self.adopt_extail(expr.extail)
+        return self
+
+    def add_extail(self, tail):
+        if isinstance(tail, Empty):
+            return None
+        traveler = self
+        while isinstance(traveler.extail, ExTail):
+            traveler = traveler.extail
+        traveler.adopt_extail(tail)
+        return self
+
+    # def child_simplify(self):
+    #     self.extail.child_simplify()
+    #     self.term.simplify()
+    #     return self
+
+    def child_simplify(self): #temporary
+        self.extail.child_simplify()
         self.simplify_term()
-        self.unparenize_expr()
-
-        #recursion step
-        self.extail.simplify()
-        
-        #after recursion : right to left
-        self.order_and_gather_terms()
-        self.remove_zero_term()
-
-    def remove_minus_op(self):
-        if isinstance(self, ExTail) and self.op == '-':
-            self.op = '+'
-            self.term *= -1
+        return self
 
     def simplify_term(self):
         before = 'before'
@@ -565,53 +598,52 @@ class ExprCommon:
             before = after
             after = str(self.term)
 
-    def unparenize_expr(self):
-        if self.term.is_single_factor(Paren) and\
-           self.term.factor.exp == 1:
+    def unparenize(self):
+        self.extail.unparenize()
+        if isinstance(self.term.termtail, Empty) and\
+           isinstance(self.term.factor, Paren):
             expr = self.term.factor.base
             expr *= self.term.coeff
             expr.add_extail(self.extail)
-            self.term = expr.term
-            self.extail = expr.extail
+            self.copy(expr)
+        return self
 
-    def order_and_gather_terms(self): #idea from bubble sort
-        if self.term.coeff == 0:
-            self.term = Term(Num(0))
-        elif isinstance(self.extail, ExTail):
-            self.extail.order_and_gather_terms()
-            if self.term < self.extail.term:
-                self.term, self.extail.term = self.extail.term, self.term
-            elif self.term == self.extail.term:
-                self.term.coeff += self.extail.term.coeff
-                self.extail = self.extail.extail
+    def sort(self): # n square complexity
+        self.extail.sort()
+        traveler = self
+        while isinstance(traveler.extail, ExTail) and self.term < traveler.extail.term:
+            traveler = traveler.extail
+        traveler.adopt_extail(ExTail('+', self.term, traveler.extail))
+        self.copy(self.extail)
+        return self
 
-    def remove_zero_term(self):
-        if isinstance(self.extail, ExTail):
-            if self.term.coeff == 0:
-                self.term = self.extail.term
-                self.extail = self.extail.extail
-            elif self.extail.term.coeff == 0:
-                self.extail = self.extail.extail
+    # def remove_zero_term(self):
+    #     if isinstance(self.extail, ExTail):
+    #         if self.term.coeff == 0:
+    #             self.term = self.extail.term
+    #             self.extail = self.extail.extail
+    #         elif self.extail.term.coeff == 0:
+    #             self.extail = self.extail.extail
 
-    def add_extail(self, given_extail):
-        assert isinstance(given_extail, ExTail) or isinstance(given_extail, Empty)
-        if isinstance(given_extail, Empty):
-            pass
-        elif isinstance(self.extail, Empty):
-            self.extail = given_extail
-        else:
-            self.extail.add_extail(given_extail)
+    # def add_extail(self, given_extail):
+    #     assert isinstance(given_extail, ExTail) or isinstance(given_extail, Empty)
+    #     if isinstance(given_extail, Empty):
+    #         pass
+    #     elif isinstance(self.extail, Empty):
+    #         self.extail = given_extail
+    #     else:
+    #         self.extail.add_extail(given_extail)
 
-    def monic(self, div_factor=1.):
-        if isinstance(self, Expr):
-            new = deepcopy(self)
-            div_factor = self.term.coeff
-        else:
-            new = self
-        new.term.coeff /= div_factor
-        if isinstance(new.extail, ExTail):
-            new.extail = new.extail.monic(div_factor)
-        return new
+    # def monic(self, div_factor=1.):
+    #     if isinstance(self, Expr):
+    #         new = deepcopy(self)
+    #         div_factor = self.term.coeff
+    #     else:
+    #         new = self
+    #     new.term.coeff /= div_factor
+    #     if isinstance(new.extail, ExTail):
+    #         new.extail = new.extail.monic(div_factor)
+     #    return new
 
     def __repr__(self):
         return str(self)
@@ -648,14 +680,6 @@ class ExprCommon:
             new.extail = -new.extail
         return new
 
-    def __add__(self, another):
-        assert isinstance(another, Expr)
-        new = deepcopy(self)
-        another = deepcopy(another)
-        new.add_extail(another.tailized())
-        new.simplify()
-        return new
-
     def __mul__(self, another):
         assert isinstance(another, Factor) or\
             isinstance(another, TermCommon) or\
@@ -685,14 +709,23 @@ class ExprCommon:
 class Expr(ExprCommon):
     def __init__(self, term, extail=Empty()):
         ExprCommon.__init__(self, term, extail)
+#        self.simplify()
 
-    def penetrate(self):
-        self.term.factor.penetrate()
+    def simplify(self):
+        self.child_simplify()
+        self.unparenize()
+        self.sort()
+        self.gather()
+        return self
 
-    def simplified(self):
-        new = deepcopy(self)
-        return MetaExpr(new).expr
+    def gather(self):
+        self.extail.gather()
+        return self
 
+    def tailized(self):
+        return ExTail('+', self.term, self.extail)
+
+###### temporary start ###########
     def is_single_factor(self, instance = Factor):
         extail_check = isinstance(self.extail, Empty)
         termtail_check = isinstance(self.term.termtail, Empty)
@@ -702,57 +735,60 @@ class Expr(ExprCommon):
             factor_check = isinstance(self.term.factor)
         return extail_check and termtail_check and factor_check
 
-    def tailized(self):
-        return ExTail('+', self.term, self.extail)
+    def simplified(self):
+        self.simplify
+        return self
+
+    def penetrate(self):
+        self.term.factor.penetrate()
+        return self
+
+######### end ############
+
+    def __add__(self, another):
+        assert isinstance(another, Expr)
+        expr = deepcopy(self)
+        another = deepcopy(another)
+        expr.add_extail(another.tailized())
+        expr.simplify()
+        return expr
 
 class ExTail(ExprCommon):
     def __init__(self, op, term, extail=Empty()):
-        self.op = op
         ExprCommon.__init__(self, term, extail)
+        self.op = op
+        self.remove_minus_op()
+
+    def gather(self):
+        self.extail.gather()
+        if self.term == self.parent.term:
+            self.parent.term.coeff += self.term.coeff
+            self.parent.adopt_extail(self.extail)
+
+    def remove_minus_op(self):
+        if self.op == '-':
+            self.op = '+'
+            self.term *= -1
+
+##########temp###########
+    def simplify(self):
+        self.child_simplify()
+        self.unparenize()
+        self.sort()
+        self.gather()
+        return self
+###############end#########
 
 class MetaExpr:
     def __init__(self, given):
-        if isinstance(given, Expr):
-            self.expr = given
-        elif isinstance(given, Term):
-            self.expr = Expr(given)
-        elif isinstance(given, Factor):
-            self.expr = Expr(Term(given))
-        elif is_num(given):
-            self.expr = Expr(Term(Num(given)))
-        else:
-            raise ValueError
-        self.simplify()
-
-    def simplify(self):
-        before = 'before'
-        after = str(self.expr)
-        while before != after:
-            self.expr.simplify()
-            before = after
-            after = str(self.expr)
-        return self
+        self.expr = given
+        self.expr.simplify()
 
     def __eq__(self, another):
         return self.expr == another
-
-    def __neg__(self):
-        return MetaExpr(-self.expr)
-
-    def __add__(self, another):
-        if isinstance(another, MetaExpr):
-            return MetaExpr(self.expr + another.expr)
-        else:
-            return MetaExpr(self.expr + another)
-
-    def __mul__(self, another):
-        if isinstance(another, MetaExpr):
-            return MetaExpr(self.expr * another.expr)
-        else:
-            return MetaExpr(self.expr * another)
 
     def __repr__(self):
         return str(self)
 
     def __str__(self):
-        return '%s'%str(self.expr)
+        return str(self.expr)

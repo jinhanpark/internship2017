@@ -2,16 +2,15 @@ from nodes import *
 from my_tokenizer import *
 
 def get_meta_expr(s):
-    tokens = Tokens(s)
-    expr = get_expr(tokens)
-    assert not tokens.have_elt()
+    expr = string2expr(s)
     return MetaExpr(expr)
 
 def get_simple_expr(s):
-    meta = get_meta_expr(s)
-    return meta.expr
+    expr = string2expr(s)
+    expr.simplify()
+    return expr
 
-def get_expr_from_string(s):
+def string2expr(s):
     tokens = Tokens(s)
     expr = get_expr(tokens)
     assert not tokens.have_elt()
