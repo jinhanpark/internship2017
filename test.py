@@ -59,7 +59,7 @@ class TestSimplification(unittest.TestCase):
             self.assertEqual(str(get_simple_expr(pair[0])), get_simple_expr(pair[1]))
 
     def test_distribution(self):
-        lst = (('pow(2*(x+y), 1.5)', '2.828427*pow(pow(y, 1)+pow(x, 1), 1.5)'),
+        lst = (('pow(2*(x+y), 1.5)', '2.8284271247461903*pow(pow(y, 1)+pow(x, 1), 1.5)'),
                ('pow(x+y, 2)', 'pow(y, 2)+2*pow(y, 1)*pow(x, 1)+pow(x, 2)'),
                ('pow(x+1, 3)', 'pow(x, 3)+3*pow(x, 2)+3*pow(x, 1)+1'),
                ('(x-y)*(pow(x, 2) + x*y + pow(y, 2))', 'pow(x, 3) - pow(y, 3)')

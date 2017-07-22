@@ -32,7 +32,6 @@ class Empty:
     def __init__(self):
         self.term = ''
 #        self.extail = self
-        pass
 
     def simplify(self): # may be no need
         pass
@@ -47,6 +46,9 @@ class Empty:
         pass
 
     def gather(self):
+        pass
+
+    def remove_zeros(self):
         pass
 
     def __repr__(self):
@@ -254,7 +256,7 @@ class Paren(SinVarFunc): #regard Paren as identity function
             self.coeff *= self.base.term.coeff
             self.exp *= self.base.term.factor.exp
             self.base = self.base.term.factor.base
-        if self.base.is_single_factor():
+        if self.base.is_single_factor(Factor):
             self.base.penetrate()
             new = deepcopy(self.base.term.factor)
             new.coeff *= self.base.term.coeff
@@ -580,7 +582,7 @@ class ExprCommon:
         traveler.adopt_extail(tail)
         return self
 
-    # def child_simplify(self):
+    # def child_simplify(self): # later
     #     self.extail.child_simplify()
     #     self.term.simplify()
     #     return self
@@ -617,54 +619,22 @@ class ExprCommon:
         self.copy(self.extail)
         return self
 
-    # def remove_zero_term(self):
-    #     if isinstance(self.extail, ExTail):
-    #         if self.term.coeff == 0:
-    #             self.term = self.extail.term
-    #             self.extail = self.extail.extail
-    #         elif self.extail.term.coeff == 0:
-    #             self.extail = self.extail.extail
-
-    # def add_extail(self, given_extail):
-    #     assert isinstance(given_extail, ExTail) or isinstance(given_extail, Empty)
-    #     if isinstance(given_extail, Empty):
-    #         pass
-    #     elif isinstance(self.extail, Empty):
-    #         self.extail = given_extail
-    #     else:
-    #         self.extail.add_extail(given_extail)
-
-    # def monic(self, div_factor=1.):
-    #     if isinstance(self, Expr):
-    #         new = deepcopy(self)
-    #         div_factor = self.term.coeff
-    #     else:
-    #         new = self
-    #     new.term.coeff /= div_factor
-    #     if isinstance(new.extail, ExTail):
-    #         new.extail = new.extail.monic(div_factor)
-     #    return new
+#############temp###################
+    def monic(self, div_factor=1.):
+        if isinstance(self, Expr):
+            new = deepcopy(self)
+            div_factor = self.term.coeff
+        else:
+            new = self
+        new.term.coeff /= div_factor
+        if isinstance(new.extail, ExTail):
+            new.extail = new.extail.monic(div_factor)
+        return new
+###############temp end#############
 
     def __repr__(self):
         return str(self)
 
-    def __str__(self):
-        if isinstance(self, ExTail):
-            op_str = self.op
-        else:
-            op_str = ''
-        term_str = str(self.term)
-        extail_str = str(self.extail)
-        coeff = self.term.coeff
-        coeff_str = '%f*'%coeff
-        if coeff == 1:
-            coeff_str = ''
-        elif coeff == -1:
-            coeff_str = '-'
-        elif isinstance(self.term.factor, Num):
-            coeff_str = '%f'%coeff
-            term_str = str(self.term.termtail)
-        return '%s%s%s%s'%(op_str, coeff_str, term_str, extail_str)
 
     def __eq__(self, another):
         if is_num(another):
@@ -716,17 +686,24 @@ class Expr(ExprCommon):
         self.unparenize()
         self.sort()
         self.gather()
+        self.remove_zeros()
         return self
 
     def gather(self):
         self.extail.gather()
         return self
 
+    def remove_zeros(self):
+        self.extail.remove_zeros()
+        # if self.term.coeff == 0:
+        #     self.copy(self.extail)
+        return self
+
     def tailized(self):
         return ExTail('+', self.term, self.extail)
 
 ###### temporary start ###########
-    def is_single_factor(self, instance = Factor):
+    def is_single_factor(self, instance):
         extail_check = isinstance(self.extail, Empty)
         termtail_check = isinstance(self.term.termtail, Empty)
         if instance != 0:
@@ -736,7 +713,7 @@ class Expr(ExprCommon):
         return extail_check and termtail_check and factor_check
 
     def simplified(self):
-        self.simplify
+        self.simplify()
         return self
 
     def penetrate(self):
@@ -744,6 +721,21 @@ class Expr(ExprCommon):
         return self
 
 ######### end ############
+
+    def __str__(self):
+        op_str = ''
+        term_str = str(self.term)
+        extail_str = str(self.extail)
+        coeff = self.term.coeff
+        coeff_str = str(coeff)+'*'
+        if coeff == 1:
+            coeff_str = ''
+        elif coeff == -1:
+            coeff_str = '-'
+        elif isinstance(self.term.factor, Num):
+            coeff_str = str(coeff)
+            term_str = str(self.term.termtail)
+        return '%s%s%s'%(coeff_str, term_str, extail_str)
 
     def __add__(self, another):
         assert isinstance(another, Expr)
@@ -765,6 +757,11 @@ class ExTail(ExprCommon):
             self.parent.term.coeff += self.term.coeff
             self.parent.adopt_extail(self.extail)
 
+    def remove_zeros(self):
+        self.extail.remove_zeros()
+        if self.term.coeff == 0:
+            self.parent.adopt_extail(self.extail)
+
     def remove_minus_op(self):
         if self.op == '-':
             self.op = '+'
@@ -772,12 +769,24 @@ class ExTail(ExprCommon):
 
 ##########temp###########
     def simplify(self):
-        self.child_simplify()
-        self.unparenize()
-        self.sort()
-        self.gather()
-        return self
+        pass
 ###############end#########
+
+    def __str__(self):
+        op_str = self.op
+        term_str = str(self.term)
+        extail_str = str(self.extail)
+        coeff = self.term.coeff
+        coeff_str = str(coeff)+'*'
+        if coeff == 1:
+            coeff_str = ''
+        elif coeff == -1:
+            coeff_str = '-'
+        elif isinstance(self.term.factor, Num):
+            coeff_str = str(coeff)
+            term_str = str(self.term.termtail)
+        return '%s%s%s%s'%(op_str, coeff_str, term_str, extail_str)
+
 
 class MetaExpr:
     def __init__(self, given):
