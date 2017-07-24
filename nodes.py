@@ -63,8 +63,11 @@ class Empty:
     def __neg__(self):
         return self
 
-    def __add__(self):
-        pass
+    def __add__(self, another):
+        return self
+
+    def __mul__(self, another):
+        return self
 
 class MetaExpr:
     def __init__(self, given):
@@ -151,6 +154,9 @@ class ExprCommon:
         self.copy(self.extail)
         return self
 
+    def tailized(self):
+        return ExTail('+', self.term, self.extail)
+
     def __repr__(self):
         return str(self)
 
@@ -164,32 +170,6 @@ class ExprCommon:
         expr.term = -expr.term
         expr.extail = -expr.extail
         return expr
-
-    def __mul__(self, another):
-        assert isinstance(another, Factor) or\
-            isinstance(another, TermCommon) or\
-            isinstance(another, Expr) or\
-            isinstance(another, float) or\
-            isinstance(another, int)
-        
-        if isinstance(self, Expr):
-            new = deepcopy(self)
-        else:
-            new = self
-        another = deepcopy(another)
-
-        if isinstance(another, Factor):
-            new.term *= another
-        elif isinstance(another, TermCommon):
-            new.term.add_termtail(another.tailized())
-        elif isinstance(another, Expr):
-            new.term = Term(Paren(new.term*another))
-        else:
-            new.term *= another
-        if isinstance(self.extail, ExTail):
-            new.extail *= another
-        new.simplify()
-        return new
 
 class Expr(ExprCommon):
     def __init__(self, term, extail=Empty()):
@@ -233,9 +213,6 @@ class Expr(ExprCommon):
     #     #     self.copy(self.extail)
     #     return self
 
-    def tailized(self):
-        return ExTail('+', self.term, self.extail)
-
     def monic(self):
         expr = deepcopy(self)
         div_factor = self.term.coeff
@@ -263,6 +240,15 @@ class Expr(ExprCommon):
         expr = deepcopy(self)
         another = deepcopy(another)
         expr.add_extail(another.tailized())
+        expr.simplify()
+        return expr
+
+    def __mul__(self, another):
+        expr = deepcopy(self)
+        another = deepcopy(another)
+
+        expr.adopt_term(expr.term * another)
+        expr.adopt_extail(expr.extail * another)
         expr.simplify()
         return expr
 
@@ -309,6 +295,15 @@ class ExTail(ExprCommon):
             coeff_str = str(coeff)
             term_str = str(self.term.termtail)
         return '%s%s%s%s'%(op_str, coeff_str, term_str, extail_str)
+
+    def __mul__(self, another):
+        expr = deepcopy(self)
+        another = deepcopy(another)
+
+        expr.adopt_term(expr.term * another)
+        expr.adopt_extail(expr.extail * another)
+        expr.simplify()
+        return expr
 
 class TermCommon:
     def __init__(self, factor, termtail=Empty(), coeff=1.):
@@ -480,7 +475,7 @@ class Term(TermCommon):
 
     def __mul__(self, another):
         assert isinstance(another, Factor) or\
-            isinstance(another, Term) or\
+            isinstance(another, TermCommon) or\
             isinstance(another, Expr) or\
             isinstance(another, float) or\
             isinstance(another, int)
@@ -489,11 +484,11 @@ class Term(TermCommon):
         
         if isinstance(another, Factor):
             return Term(another) * new
-        elif isinstance(another, Term):
+        elif isinstance(another, TermCommon):
             new.add_termtail(another.tailized())
             return new
         elif isinstance(another, Expr):
-            return another * new
+            return Term(Paren(another * new))
         else:
             new.coeff *= another
             return new
