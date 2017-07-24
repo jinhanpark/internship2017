@@ -156,7 +156,7 @@ class TestDifferentiation(unittest.TestCase):
                ('log(x)', '1/x'),
                ('1/sin(x)', '-cos(x)/sin(x)/sin(x)'),
                ('pow(e, x)', 'pow(e, x)'),
-               ('pow(2, x)', '0.693147*pow(2, x)'),
+               ('pow(2, x)', '0.6931471805599453*pow(2, x)'),
                ('log(sin(x))', 'pow(tan(x), -1)'),
                ('log(y)', '0'),
         )
@@ -174,4 +174,5 @@ def main():
         test(t)
 
 if (__name__ == "__main__"):
-    main()
+#    main()
+    meta = get_meta_expr('pow(x, 0)')

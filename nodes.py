@@ -30,6 +30,7 @@ def num2expr(given):
 class Empty:
     def __init__(self):
         self.term = ''
+        self.factor = ''
 #        self.extail = self
 
     def simplify(self): # may be no need
@@ -50,11 +51,17 @@ class Empty:
     def remove_zeros(self):
         pass
 
+    def follow_monic(self, div_factor):
+        pass
+
     def __repr__(self):
         return str(self)
 
     def __str__(self):
         return ''
+
+    def __neg__(self):
+        return self
 
     def __add__(self):
         pass
@@ -80,21 +87,19 @@ class ExprCommon:
         self.adopt_extail(extail)
 
 #############temp###################
-    def monic(self, div_factor=1.):
-        if isinstance(self, Expr):
-            new = deepcopy(self)
-            div_factor = self.term.coeff
-        else:
-            new = self
-        new.term.coeff /= div_factor
-        if isinstance(new.extail, ExTail):
-            new.extail = new.extail.monic(div_factor)
-        return new
-
     def child_simplify(self): #temporary
         self.extail.child_simplify()
         self.simplify_term()
         return self
+
+    def simplify_term(self):
+        before = 'before'
+        after = str(self.term)
+        while before != after:
+            self.term.simplify()
+            before = after
+            after = str(self.term)
+
 ###############temp end#############
 
     def adopt_term(self, term):
@@ -127,17 +132,9 @@ class ExprCommon:
     #     self.term.simplify()
     #     return self
 
-    def simplify_term(self):
-        before = 'before'
-        after = str(self.term)
-        while before != after:
-            self.term.simplify()
-            before = after
-            after = str(self.term)
-
     def unparenize(self):
         self.extail.unparenize()
-        if isinstance(self.term.termtail, Empty) and\
+        if self.term.termtail.factor == '' and\
            isinstance(self.term.factor, Paren):
             expr = self.term.factor.base
             expr *= self.term.coeff
@@ -148,7 +145,7 @@ class ExprCommon:
     def sort(self): # n square complexity
         self.extail.sort()
         traveler = self
-        while isinstance(traveler.extail, ExTail) and self.term < traveler.extail.term:
+        while traveler.extail.term != '' and self.term < traveler.extail.term:
             traveler = traveler.extail
         traveler.adopt_extail(ExTail('+', self.term, traveler.extail))
         self.copy(self.extail)
@@ -157,20 +154,16 @@ class ExprCommon:
     def __repr__(self):
         return str(self)
 
-
     def __eq__(self, another):
-        if is_num(another):
-            another_str = str(MetaExpr(Expr(Term(Num(another)))))
-        else:
-            another_str = str(another)
-        return str(self) == another_str
+        if type(another) == int:
+            another = float(another)
+        return str(self) == str(another)
 
     def __neg__(self):
-        new = deepcopy(self)
-        new.term = -new.term
-        if isinstance(new.extail, ExTail):
-            new.extail = -new.extail
-        return new
+        expr = deepcopy(self)
+        expr.term = -expr.term
+        expr.extail = -expr.extail
+        return expr
 
     def __mul__(self, another):
         assert isinstance(another, Factor) or\
@@ -203,27 +196,6 @@ class Expr(ExprCommon):
         ExprCommon.__init__(self, term, extail)
 #        self.simplify()
 
-    def simplify(self):
-        self.child_simplify()
-        self.unparenize()
-        self.sort()
-        self.gather()
-        self.remove_zeros()
-        return self
-
-    def gather(self):
-        self.extail.gather()
-        return self
-
-    def remove_zeros(self):
-        self.extail.remove_zeros()
-        # if self.term.coeff == 0:
-        #     self.copy(self.extail)
-        return self
-
-    def tailized(self):
-        return ExTail('+', self.term, self.extail)
-
 ###### temporary start ###########
     def is_single_factor(self, instance):
         extail_check = isinstance(self.extail, Empty)
@@ -241,8 +213,35 @@ class Expr(ExprCommon):
     def penetrate(self):
         self.term.factor.penetrate()
         return self
-
 ######### end ############
+
+    def simplify(self):
+        self.child_simplify()
+        self.unparenize()
+        self.sort()
+        self.gather()
+        # self.remove_zeros()
+        return self
+
+    def gather(self):
+        self.extail.gather()
+        return self
+
+    # def remove_zeros(self):
+    #     self.extail.remove_zeros()
+    #     # if self.term.coeff == 0:
+    #     #     self.copy(self.extail)
+    #     return self
+
+    def tailized(self):
+        return ExTail('+', self.term, self.extail)
+
+    def monic(self):
+        expr = deepcopy(self)
+        div_factor = self.term.coeff
+        expr.term.coeff /= div_factor
+        expr.extail.follow_monic(div_factor)
+        return expr
 
     def __str__(self):
         op_str = ''
@@ -273,15 +272,17 @@ class ExTail(ExprCommon):
         self.op = op
         self.remove_minus_op()
 
+##########temp###########
+    def simplify(self):
+        pass
+###############end#########
+
     def gather(self):
         self.extail.gather()
-        if self.term == self.parent.term:
-            self.parent.term.coeff += self.term.coeff
-            self.parent.adopt_extail(self.extail)
-
-    def remove_zeros(self):
-        self.extail.remove_zeros()
         if self.term.coeff == 0:
+            self.parent.adopt_extail(self.extail)
+        elif self.term == self.parent.term:
+            self.parent.term.coeff += self.term.coeff
             self.parent.adopt_extail(self.extail)
 
     def remove_minus_op(self):
@@ -289,10 +290,10 @@ class ExTail(ExprCommon):
             self.op = '+'
             self.term *= -1
 
-##########temp###########
-    def simplify(self):
-        pass
-###############end#########
+    def follow_monic(self, div_factor):
+        self.term.coeff /= div_factor
+        self.extail.follow_monic(div_factor)
+        return self
 
     def __str__(self):
         op_str = self.op
@@ -351,7 +352,7 @@ class TermCommon:
         after = str(self.factor)
         while before != after:
             self.coeff *= self.factor.coeff
-            self.factor.coeff = 1
+            self.factor.coeff = 1.
             self.factor = self.factor.simplified()
             before = after
             after = str(self.factor)
@@ -375,7 +376,7 @@ class TermCommon:
                 self.factor, self.termtail.factor = self.termtail.factor, self.factor
             elif isinstance(self.factor, Paren):
                 pass
-            elif self.factor == self.termtail.factor:
+            elif self.factor.is_similar_with(self.termtail.factor):
                 if (is_int_expr(self.factor.exp) and is_int_expr(self.termtail.factor.exp) and self.factor.exp.term.coeff * self.termtail.factor.exp.term.coeff > 0) or\
                    no_var_in_str(str(self.factor.base)):
                     self.factor.exp += self.termtail.factor.exp
@@ -543,6 +544,9 @@ class Factor:
             new.exp = -self.exp
         return new
 
+    def is_similar_with(self, another):
+        return str(self.base) == str(another.base)
+
     def __repr__(self):
         return str(self)
 
@@ -578,8 +582,7 @@ class Factor:
                     return str(self.exp) < str(another.exp)
 
     def __eq__(self, another):
-        assert isinstance(another, Factor)
-        return str(self.base) == str(another.base)
+#        return str(self.base) == str(another.base)
         return str(self) == str(another)
 
     def __le__(self, another):
@@ -680,7 +683,7 @@ class Num(Literal):
         self.base = num
         self.exp = 1.
         self.coeff *= float(self.base)
-        self.base = 1
+        self.base = 1.
 
     def simplified(self):
         return self
