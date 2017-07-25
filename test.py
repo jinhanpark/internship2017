@@ -1,3 +1,4 @@
+
 import unittest
 from my_tokenizer import Tokens
 from tree_generator import *
@@ -174,5 +175,6 @@ def main():
         test(t)
 
 if (__name__ == "__main__"):
-#    main()
-    meta = get_meta_expr('pow(x, 0)')
+    main()
+    meta = get_meta_expr('(x+y)*(x+y)')
+    print(meta)

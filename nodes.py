@@ -29,14 +29,16 @@ def num2expr(given):
 
 class Empty:
     def __init__(self):
-        self.term = ''
-        self.factor = ''
-#        self.extail = self
+        self.term = self
+        self.factor = self
+        self.extail = self
+        self.termtail = self
 
     def simplify(self): # may be no need
         pass
 
-    def child_simplify(self):
+    ###expr###
+    def child_term_simplify(self):
         pass
 
     def unparenize(self):
@@ -53,6 +55,11 @@ class Empty:
 
     def follow_monic(self, div_factor):
         pass
+
+    ###term####
+    def str_without_coeff(self):
+        return ''
+
 
     def __repr__(self):
         return str(self)
@@ -90,11 +97,6 @@ class ExprCommon:
         self.adopt_extail(extail)
 
 #############temp###################
-    def child_simplify(self): #temporary
-        self.extail.child_simplify()
-        self.simplify_term()
-        return self
-
     def simplify_term(self):
         before = 'before'
         after = str(self.term)
@@ -102,7 +104,6 @@ class ExprCommon:
             self.term.simplify()
             before = after
             after = str(self.term)
-
 ###############temp end#############
 
     def adopt_term(self, term):
@@ -130,14 +131,15 @@ class ExprCommon:
         traveler.adopt_extail(tail)
         return self
 
-    # def child_simplify(self): # later
-    #     self.extail.child_simplify()
-    #     self.term.simplify()
-    #     return self
+    def child_term_simplify(self):
+        self.extail.child_term_simplify()
+        #self.term.simplify() # later
+        self.simplify_term() # temp
+        return self
 
     def unparenize(self):
         self.extail.unparenize()
-        if self.term.termtail.factor == '' and\
+        if isinstance(self.term.termtail, Empty) and\
            isinstance(self.term.factor, Paren):
             expr = self.term.factor.base
             expr *= self.term.coeff
@@ -148,7 +150,7 @@ class ExprCommon:
     def sort(self): # n square complexity
         self.extail.sort()
         traveler = self
-        while traveler.extail.term != '' and self.term < traveler.extail.term:
+        while isinstance(traveler.extail, ExTail) and self.term < traveler.extail.term:
             traveler = traveler.extail
         traveler.adopt_extail(ExTail('+', self.term, traveler.extail))
         self.copy(self.extail)
@@ -196,22 +198,15 @@ class Expr(ExprCommon):
 ######### end ############
 
     def simplify(self):
-        self.child_simplify()
+        self.child_term_simplify()
         self.unparenize()
         self.sort()
         self.gather()
-        # self.remove_zeros()
         return self
 
     def gather(self):
         self.extail.gather()
         return self
-
-    # def remove_zeros(self):
-    #     self.extail.remove_zeros()
-    #     # if self.term.coeff == 0:
-    #     #     self.copy(self.extail)
-    #     return self
 
     def monic(self):
         expr = deepcopy(self)
@@ -221,19 +216,9 @@ class Expr(ExprCommon):
         return expr
 
     def __str__(self):
-        op_str = ''
         term_str = str(self.term)
         extail_str = str(self.extail)
-        coeff = self.term.coeff
-        coeff_str = str(coeff)+'*'
-        if coeff == 1:
-            coeff_str = ''
-        elif coeff == -1:
-            coeff_str = '-'
-        elif isinstance(self.term.factor, Num):
-            coeff_str = str(coeff)
-            term_str = str(self.term.termtail)
-        return '%s%s%s'%(coeff_str, term_str, extail_str)
+        return '%s%s'%(term_str, extail_str)
 
     def __add__(self, another):
         assert isinstance(another, Expr)
@@ -259,8 +244,8 @@ class ExTail(ExprCommon):
         self.remove_minus_op()
 
 ##########temp###########
-    def simplify(self):
-        pass
+    # def simplify(self):
+    #     pass
 ###############end#########
 
     def gather(self):
@@ -285,16 +270,7 @@ class ExTail(ExprCommon):
         op_str = self.op
         term_str = str(self.term)
         extail_str = str(self.extail)
-        coeff = self.term.coeff
-        coeff_str = str(coeff)+'*'
-        if coeff == 1:
-            coeff_str = ''
-        elif coeff == -1:
-            coeff_str = '-'
-        elif isinstance(self.term.factor, Num):
-            coeff_str = str(coeff)
-            term_str = str(self.term.termtail)
-        return '%s%s%s%s'%(op_str, coeff_str, term_str, extail_str)
+        return '%s%s%s'%(op_str, term_str, extail_str)
 
     def __mul__(self, another):
         expr = deepcopy(self)
@@ -302,7 +278,6 @@ class ExTail(ExprCommon):
 
         expr.adopt_term(expr.term * another)
         expr.adopt_extail(expr.extail * another)
-        expr.simplify()
         return expr
 
 class TermCommon:
@@ -461,17 +436,26 @@ class Term(TermCommon):
         factor_check = isinstance(self.factor, instance)
         return tail_check and factor_check
 
+    def str_without_coeff(self):
+        return str(self.factor) + str(self.termtail)
+
     def __repr__(self):
         return str(self)
 
     def __str__(self):
-        if isinstance(self, TermTail):
-            op_str = self.op
-        else:
-            op_str = ''
         factor_str = str(self.factor)
         termtail_str = str(self.termtail)
-        return '%s%s%s'%(op_str, factor_str, termtail_str)
+        coeff = self.coeff
+        if coeff == 1:
+            coeff_str = ''
+        elif coeff == -1:
+            coeff_str = '-'
+        elif self.factor == str(1.):
+            coeff_str = str(coeff)
+            factor_str = ''
+        else:
+            coeff_str = str(coeff)+'*'
+        return '%s%s%s'%(coeff_str, factor_str, termtail_str)
 
     def __mul__(self, another):
         assert isinstance(another, Factor) or\
@@ -499,12 +483,12 @@ class Term(TermCommon):
         return new
 
     def __lt__(self, another):
-        assert isinstance(another, Term)
-        return str(self) < str(another)
+        assert isinstance(another, Term) or isinstance(another, Empty)
+        return self.str_without_coeff() < another.str_without_coeff()
 
     def __eq__(self, another):
-        assert isinstance(another, Term) or another == ''
-        return str(self) == str(another)
+        assert isinstance(another, Term) or isinstance(another, Empty)
+        return self.str_without_coeff() == another.str_without_coeff()
 
     def __le__(self, another):
         return self < another or self == another
