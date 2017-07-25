@@ -34,8 +34,12 @@ class Empty:
         self.extail = self
         self.termtail = self
 
-    def simplify(self): # may be no need
+    ###term####
+    def simplify(self): # due to term
         pass
+
+    def str_without_coeff(self):
+        return ''
 
     ###expr###
     def child_term_simplify(self):
@@ -56,11 +60,6 @@ class Empty:
     def follow_monic(self, div_factor):
         pass
 
-    ###term####
-    def str_without_coeff(self):
-        return ''
-
-
     def __repr__(self):
         return str(self)
 
@@ -79,7 +78,11 @@ class Empty:
 class MetaExpr:
     def __init__(self, given):
         self.expr = given
+        self.simplify()
+
+    def simplify(self):
         self.expr.simplify()
+        return self
 
     def __eq__(self, another):
         return self.expr == another
@@ -242,11 +245,6 @@ class ExTail(ExprCommon):
         ExprCommon.__init__(self, term, extail)
         self.op = op
         self.remove_minus_op()
-
-##########temp###########
-    # def simplify(self):
-    #     pass
-###############end#########
 
     def gather(self):
         self.extail.gather()
