@@ -176,5 +176,3 @@ def main():
 
 if (__name__ == "__main__"):
     main()
-    #meta = get_meta_expr('x*x*y')
-    print(meta)
