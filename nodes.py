@@ -517,10 +517,7 @@ class Factor:
     def reciprocal(self):
         new = deepcopy(self)
         new.coeff = math.pow(self.coeff, -1)
-        if is_num(self.exp):
-            new.exp = num2expr(-self.exp)
-        else:
-            new.exp = -self.exp
+        new.exp = -self.exp
         return new
 
     def is_similar_with(self, another):
@@ -561,11 +558,10 @@ class Factor:
                     return str(self.exp) < str(another.exp)
 
     def __eq__(self, another):
-#        return str(self.base) == str(another.base)
         return str(self) == str(another)
 
     def __le__(self, another):
-        return self<another or self == another
+        return self < another or self == another
 
 class Pow(Factor):
     def __init__(self, base, exp, coeff=1.):
